@@ -98,7 +98,7 @@ export default function Upload() {
                 } 
               });
             } else {
-              setError("Backend processing failed.");
+              setError(data.details ? `Backend Error: ${data.details}` : "Backend processing failed.");
               setUploading(false);
             }
           } catch (err) {

@@ -30,7 +30,8 @@ async function processPrescription(req, res) {
   } catch (error) {
     console.error('Error processing prescription:', error);
     return res.status(500).json({ 
-      error: 'Failed to process prescription. Please try again.' 
+      error: 'Failed to process prescription. Please try again.',
+      details: error.message || String(error)
     });
   }
 }
