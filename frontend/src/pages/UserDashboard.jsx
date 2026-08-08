@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function UserDashboard() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -79,11 +81,17 @@ export default function UserDashboard() {
                     }
 
                     return (
-                      <tr key={audit.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <tr 
+                        key={audit.id} 
+                        style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                        onClick={() => navigate(`/audit-review/${audit.id}`)}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--surface-color)'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
                         <td style={{ padding: '0.75rem' }}>{dateString}</td>
                         <td style={{ padding: '0.75rem' }}>{audit.department || 'General'}</td>
                         <td style={{ padding: '0.75rem' }}>
-                          <span className={`badge ${classification === 'RATIONAL' ? 'badge-rational' : 'badge-irrational'}`}>
+                          <span className={`badge ${classification === 'RATIONAL' ? 'badge-rational' : classification === 'PENDING' ? 'badge-pending' : 'badge-irrational'}`}>
                             {classification}
                           </span>
                         </td>
