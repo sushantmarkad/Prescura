@@ -185,11 +185,7 @@ export default function AuditReview() {
         <h3 style={{ marginBottom: '1rem' }}>Prescription Image</h3>
         <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
           {imageUrl ? (
-            imageUrl.includes('.pdf') ? (
-              <iframe src={imageUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
-            ) : (
-              <img src={imageUrl} alt="Prescription" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-            )
+            <img src={imageUrl.toLowerCase().endsWith('.pdf') ? imageUrl.slice(0, -4) + '.jpg' : imageUrl} alt="Prescription Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
           ) : (
             <div style={{ color: 'var(--text-secondary)' }}>No image available</div>
           )}
