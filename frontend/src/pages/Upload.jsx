@@ -96,6 +96,8 @@ export default function Upload() {
             setError("Failed to connect to backend server.");
             setUploading(false);
           }
+        }
+      );
     } catch (err) {
       console.error(err);
       setError('An unexpected error occurred.');
