@@ -1,162 +1,124 @@
 /**
- * Audit Engine
- * 
- * Deterministically evaluates extracted prescription data against A-F criteria.
+ * NABH Audit Engine
+ * Evaluates extracted AI output against the 34 NABH (6th Ed) Parameters.
  */
 
-// Define standard criteria based on the prompt rules
 const standardCriteria = [
   // SECTION A: Patient Identification
-  { id: 'A1', section: 'A', question: 'UHID/IPD/OPD number mentioned' },
-  { id: 'A2', section: 'A', question: 'Patient name mentioned' },
-  { id: 'A3', section: 'A', question: 'Age mentioned' },
-  { id: 'A4', section: 'A', question: 'Gender mentioned' },
-  { id: 'A5', section: 'A', question: 'Weight documented where applicable' },
-  { id: 'A6', section: 'A', question: 'Date and time of prescription' },
+  { id: 'A1', section: 'A', sectionName: 'A. Patient Identification', question: 'UHID/IPD/OPD number mentioned' },
+  { id: 'A2', section: 'A', sectionName: 'A. Patient Identification', question: 'Patient name mentioned' },
+  { id: 'A3', section: 'A', sectionName: 'A. Patient Identification', question: 'Age mentioned' },
+  { id: 'A4', section: 'A', sectionName: 'A. Patient Identification', question: 'Gender mentioned' },
+  { id: 'A5', section: 'A', sectionName: 'A. Patient Identification', question: 'Weight documented (where applicable)' },
+  { id: 'A6', section: 'A', sectionName: 'A. Patient Identification', question: 'Date and time of prescription' },
 
   // SECTION B: Prescriber Identification
-  { id: 'B1', section: 'B', question: 'Doctor\'s name clearly mentioned' },
-  { id: 'B2', section: 'B', question: 'Registration number mentioned' },
-  { id: 'B3', section: 'B', question: 'Signature present' },
-  { id: 'B4', section: 'B', question: 'Department/unit mentioned' },
+  { id: 'B1', section: 'B', sectionName: 'B. Prescriber Identification', question: 'Doctor\'s name clearly mentioned' },
+  { id: 'B2', section: 'B', sectionName: 'B. Prescriber Identification', question: 'Registration number mentioned' },
+  { id: 'B3', section: 'B', sectionName: 'B. Prescriber Identification', question: 'Signature present' },
+  { id: 'B4', section: 'B', sectionName: 'B. Prescriber Identification', question: 'Department/unit mentioned' },
 
   // SECTION C: Medication Order Completeness
-  { id: 'C1', section: 'C', question: 'Generic name used' },
-  { id: 'C2', section: 'C', question: 'Drug strength mentioned' },
-  { id: 'C3', section: 'C', question: 'Dosage form specified' },
-  { id: 'C4', section: 'C', question: 'Dose clearly written' },
-  { id: 'C5', section: 'C', question: 'Route mentioned' },
-  { id: 'C6', section: 'C', question: 'Frequency mentioned' },
-  { id: 'C7', section: 'C', question: 'Duration mentioned' },
-  { id: 'C8', section: 'C', question: 'Indication documented (where applicable)' },
-  { id: 'C9', section: 'C', question: 'Allergy status documented' },
-  { id: 'C10', section: 'C', question: 'High-risk medicine appropriately identified' },
+  { id: 'C1', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Generic name used' },
+  { id: 'C2', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Drug strength mentioned' },
+  { id: 'C3', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Dosage form specified' },
+  { id: 'C4', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Dose clearly written' },
+  { id: 'C5', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Route mentioned' },
+  { id: 'C6', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Frequency mentioned' },
+  { id: 'C7', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Duration mentioned' },
+  { id: 'C8', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Indication documented (where applicable)' },
+  { id: 'C9', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'Allergy status documented' },
+  { id: 'C10', section: 'C', sectionName: 'C. Medication Order Completeness', question: 'High-risk medicine appropriately identified' },
   
-  // SECTION D, E, F (Placeholders)
-  { id: 'D1', section: 'D', question: 'Prescription legible' }
+  // SECTION D: Medication Safety Parameters
+  { id: 'D1', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Prescription legible' },
+  { id: 'D2', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Capital letters used for handwritten orders' },
+  { id: 'D3', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Dangerous abbreviations avoided' },
+  { id: 'D4', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Decimal errors absent' },
+  { id: 'D5', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Leading zero used (0.5 mg)' },
+  { id: 'D6', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Trailing zero avoided (5 mg not 5.0 mg)' },
+  { id: 'D7', section: 'D', sectionName: 'D. NABH Medication Safety', question: 'Look-Alike Sound-Alike (LASA) precautions followed' },
+
+  // SECTION E: Rational Prescribing Indicators
+  { id: 'E1', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Drug from hospital formulary' },
+  { id: 'E2', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Antibiotic prescribed rationally' },
+  { id: 'E3', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Polypharmacy (>5 drugs) avoided' },
+  { id: 'E4', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Duplication of therapy absent' },
+  { id: 'E5', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Potential drug interactions absent' },
+  { id: 'E6', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Dose appropriate for age/renal/hepatic status' },
+  { id: 'E7', section: 'E', sectionName: 'E. Rational Prescribing Indicators', question: 'Monitoring instructions documented' },
+
+  // SECTION F: Documentation Quality
+  { id: 'F1', section: 'F', sectionName: 'F. Documentation Quality', question: 'Diagnosis documented' },
+  { id: 'F2', section: 'F', sectionName: 'F. Documentation Quality', question: 'Relevant investigation findings available' },
+  { id: 'F3', section: 'F', sectionName: 'F. Documentation Quality', question: 'Follow-up advice documented' },
+  { id: 'F4', section: 'F', sectionName: 'F. Documentation Quality', question: 'Patient instructions documented' },
 ];
 
 function evaluateCriteria(extractedData) {
-  const results = {};
-
-  // Helper to determine YES/NO based on value presence
-  const checkPresence = (field) => {
-    if (!field) return { answer: 'NO', evidence: 'Field not extracted', confidence: 1.0 };
-    if (field.status === 'DETECTED' && field.value) {
-      return { answer: 'YES', evidence: `Detected: ${field.value}`, confidence: field.confidence };
-    }
-    if (field.status === 'UNCLEAR') {
-      return { answer: 'NO', evidence: 'Handwriting was unclear', confidence: field.confidence };
-    }
-    return { answer: 'NO', evidence: 'Not found in prescription', confidence: 1.0 };
-  };
-
-  // Section A
-  results['A1'] = checkPresence(extractedData.patientInfo?.identifier);
-  results['A2'] = checkPresence(extractedData.patientInfo?.name);
-  results['A3'] = checkPresence(extractedData.patientInfo?.age);
-  results['A4'] = checkPresence(extractedData.patientInfo?.gender);
-  results['A5'] = checkPresence(extractedData.patientInfo?.weight); // Might be N/A or NO
-  
-  // A6 Date/Time logic (Needs both)
-  const date = extractedData.prescriptionDetails?.date;
-  const time = extractedData.prescriptionDetails?.time;
-  if (date?.status === 'DETECTED' && time?.status === 'DETECTED') {
-    results['A6'] = { answer: 'YES', evidence: `Date: ${date.value}, Time: ${time.value}`, confidence: Math.min(date.confidence, time.confidence) };
-  } else if (date?.status === 'DETECTED') {
-    results['A6'] = { answer: 'NO', evidence: `Date found (${date.value}), but time missing`, confidence: 0.9 };
-  } else {
-    results['A6'] = { answer: 'NO', evidence: 'Date and time not found', confidence: 1.0 };
-  }
-
-  // Section B
-  results['B1'] = checkPresence(extractedData.prescriberInfo?.name);
-  results['B2'] = checkPresence(extractedData.prescriberInfo?.registrationNumber);
-  
-  const sig = extractedData.prescriberInfo?.signaturePresent;
-  if (sig?.status === 'DETECTED' && sig?.value === true) {
-    results['B3'] = { answer: 'YES', evidence: 'Signature detected', confidence: sig.confidence };
-  } else {
-    results['B3'] = { answer: 'NO', evidence: 'Signature not found or unclear', confidence: sig?.confidence || 1.0 };
-  }
-
-  results['B4'] = checkPresence(extractedData.prescriberInfo?.department);
-
-  // Section C (Medicine Order Completeness) - Evaluates across ALL medicines
-  const checkMedicines = (fieldKey, description) => {
-    if (!extractedData.medicines || extractedData.medicines.length === 0) {
-      return { answer: 'NO', evidence: 'No medicines detected', confidence: 1.0 };
-    }
-    
-    let allValid = true;
-    let fails = [];
-    let minConf = 1.0;
-
-    extractedData.medicines.forEach((med, index) => {
-      const field = med[fieldKey];
-      if (!field || field.status !== 'DETECTED' || !field.value) {
-        allValid = false;
-        fails.push(`Medicine ${index + 1} (${med.rawText?.value || 'Unknown'})`);
-      }
-      if (field && field.confidence) {
-        minConf = Math.min(minConf, field.confidence);
-      }
-    });
-
-    if (allValid) {
-      return { answer: 'YES', evidence: `All medicines have ${description} specified`, confidence: minConf };
-    } else {
-      return { answer: 'NO', evidence: `Missing for: ${fails.join(', ')}`, confidence: minConf };
-    }
-  };
-
-  results['C1'] = checkMedicines('genericName', 'generic name');
-  results['C2'] = checkMedicines('strength', 'strength');
-  results['C3'] = checkMedicines('dosageForm', 'dosage form');
-  results['C4'] = checkMedicines('dose', 'dose');
-  results['C5'] = checkMedicines('route', 'route');
-  results['C6'] = checkMedicines('frequency', 'frequency');
-  results['C7'] = checkMedicines('duration', 'duration');
-  results['C8'] = checkMedicines('indication', 'indication');
-  
-  // Allergy status is usually Patient level, not medicine level.
-  // Assuming it's extracted in patientInfo (we'll mock it if not present)
-  results['C9'] = { answer: 'NO', evidence: 'Not extracted', confidence: 1.0 };
-  results['C10'] = { answer: 'NO', evidence: 'Not extracted', confidence: 1.0 };
-
-  // Format the output by attaching the question info
   const formattedResults = {};
+  
+  // The AI has already evaluated the YES/NO for all 34 parameters in extractedData.audit
+  // We just map it securely to our format.
+  const aiAudit = extractedData?.audit || {};
+
   standardCriteria.forEach(criteria => {
-    if (results[criteria.id]) {
-      formattedResults[criteria.id] = {
-        criterionId: criteria.id,
-        section: criteria.section,
-        question: criteria.question,
-        aiAnswer: results[criteria.id].answer,
-        finalAnswer: results[criteria.id].answer, // Default final to AI
-        evidence: results[criteria.id].evidence,
-        confidence: results[criteria.id].confidence,
-        reviewStatus: 'PENDING'
-      };
-    } else {
-       // Mock for criteria not explicitly coded yet (D, E, F)
-       formattedResults[criteria.id] = {
-        criterionId: criteria.id,
-        section: criteria.section,
-        question: criteria.question,
-        aiAnswer: 'YES', // Just mock
-        finalAnswer: 'YES',
-        evidence: 'Automated rule passed',
-        confidence: 0.9,
-        reviewStatus: 'PENDING'
-       }
-    }
+    const aiData = aiAudit[criteria.id];
+    
+    // Safely parse AI answer, default to NO if AI missed it
+    const answer = aiData?.answer === 'YES' ? 'YES' : 'NO';
+    const evidence = aiData?.evidence || 'No data extracted from prescription';
+
+    formattedResults[criteria.id] = {
+      criterionId: criteria.id,
+      section: criteria.section,
+      sectionName: criteria.sectionName,
+      question: criteria.question,
+      aiAnswer: answer,
+      finalAnswer: answer, // User can override this on frontend
+      evidence: evidence,
+      reviewStatus: 'PENDING'
+    };
   });
 
   return formattedResults;
 }
 
+/**
+ * Automates the classification to RATIONAL vs IRRATIONAL
+ * based on critical parameters being NO.
+ */
+function autoClassify(auditResults) {
+  // Define criteria that immediately make a prescription IRRATIONAL if they are NO
+  const criticalCriteria = [
+    'B3', // Signature present
+    'C4', // Dose clearly written
+    'C5', // Route mentioned
+    'C6', // Frequency mentioned
+    'D1', // Prescription legible
+    'D3', // Dangerous abbreviations avoided
+    'E2', // Antibiotic prescribed rationally
+  ];
+
+  let isRational = true;
+  let reason = 'Meets all critical NABH safety and rationality criteria.';
+
+  for (const crit of criticalCriteria) {
+    if (auditResults[crit]?.finalAnswer === 'NO') {
+      isRational = false;
+      reason = `Failed critical safety criteria (Section ${crit}): ${auditResults[crit].question}`;
+      break;
+    }
+  }
+
+  return {
+    status: isRational ? 'RATIONAL' : 'IRRATIONAL',
+    reason
+  };
+}
+
 module.exports = {
   evaluateCriteria,
-  standardCriteria
+  standardCriteria,
+  autoClassify
 };

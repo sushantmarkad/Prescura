@@ -197,21 +197,19 @@ export default function AuditReview() {
         
         <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
           
-          {/* We would map through sections dynamically, hardcoded for mock */}
-          <h4 style={{ color: 'var(--primary-color)', marginTop: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-            Section A. Patient Identification
-          </h4>
-          {Object.values(auditResults).filter(r => r.section === 'A').map(renderCriterion)}
-
-          <h4 style={{ color: 'var(--primary-color)', marginTop: '2rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-            Section B. Prescriber Identification
-          </h4>
-          {Object.values(auditResults).filter(r => r.section === 'B').map(renderCriterion)}
-
-          <h4 style={{ color: 'var(--primary-color)', marginTop: '2rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-            Section C. Medication Order Completeness
-          </h4>
-          {Object.values(auditResults).filter(r => r.section === 'C').map(renderCriterion)}
+          {/* Dynamically map through all NABH sections */}
+          {['A', 'B', 'C', 'D', 'E', 'F'].map(section => {
+            const sectionItems = Object.values(auditResults).filter(r => r.section === section);
+            if (sectionItems.length === 0) return null;
+            return (
+              <React.Fragment key={section}>
+                <h4 style={{ color: 'var(--primary-color)', marginTop: section === 'A' ? '1rem' : '2rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                  {sectionItems[0].sectionName}
+                </h4>
+                {sectionItems.map(renderCriterion)}
+              </React.Fragment>
+            );
+          })}
           
         </div>
 
@@ -227,14 +225,19 @@ export default function AuditReview() {
                   setFinalizing(true);
                   
                   const resultsArray = Object.values(auditResults);
-                  // Apply mock rule on frontend for immediate feedback, then save to DB
-                  const hasCriticalFail = resultsArray.some(r => 
-                    (r.section === 'C' && r.finalAnswer === 'NO') || 
-                    (r.criterionId === 'B1' && r.finalAnswer === 'NO')
-                  );
                   
-                  const classStat = hasCriticalFail ? 'IRRATIONAL' : 'RATIONAL';
-                  const classReas = hasCriticalFail ? 'Failed critical safety criteria (Sections B or C)' : 'Passed all critical rules';
+                  // NABH Critical Parameters that automatically trigger IRRATIONAL if NO
+                  const criticalCriteria = ['B3', 'C4', 'C5', 'C6', 'D1', 'D3', 'E2'];
+                  let classStat = 'RATIONAL';
+                  let classReas = 'Meets all critical NABH safety and rationality criteria.';
+
+                  for (const crit of criticalCriteria) {
+                    if (auditResults[crit]?.finalAnswer === 'NO') {
+                      classStat = 'IRRATIONAL';
+                      classReas = `Failed critical safety criteria (Section ${crit}): ${auditResults[crit].question}`;
+                      break;
+                    }
+                  }
                   
                   setClassification({
                     status: classStat,
@@ -249,7 +252,7 @@ export default function AuditReview() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         auditId: id,
-                        prescriptionData: { imageUrl, patientInfo: extractedData.patientInfo },
+                        prescriptionData: { imageUrl, patientName: extractedData?.patientName || 'Unknown' },
                         auditResults,
                         classification: classStat,
                         classificationReason: classReas,

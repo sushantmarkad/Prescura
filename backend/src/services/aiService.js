@@ -1,84 +1,134 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Initialize Gemini SDK
-// Note: API key is loaded from process.env.AI_API_KEY
 const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || 'mock-key');
 
 const EXTRACTION_PROMPT = `
-You are an expert AI medical assistant specializing in prescription analysis.
-Your task is to extract structured information from the provided prescription image.
+You are an expert Clinical Pharmacologist and Quality Manager performing a strict NABH (6th Edition) Prescription Audit.
+Your task is to analyze the provided prescription image/PDF and evaluate it against the 34 NABH parameters.
 
-Extract the following information:
-1. PATIENT: Name, UHID/IPD/OPD number, Age, Gender, Weight.
-2. PRESCRIBER: Doctor name, Registration number, Signature present (true/false), Department/unit.
-3. PRESCRIPTION: Date, Time, Diagnosis, Investigations, Follow-up, Patient instructions.
-4. MEDICINES: For every medicine extract:
-   - rawText: The exact text written
-   - genericName: Possible generic name
-   - brandName: Brand name if present
-   - strength: Dosage strength
-   - dosageForm: Form (tablet, syrup, etc.)
-   - dose: Amount to take
-   - route: Route of administration
-   - frequency: How often
-   - duration: How long
-   - quantity: Total quantity
-   - indication: Indication if available
+For EVERY parameter (A1 to F4), you must output "YES" or "NO".
+If a parameter is completely missing, unreadable, or not applicable but required, output "NO".
+For each parameter, provide a brief 1-sentence evidence string explaining your choice (e.g. "Detected 'Dr. Smith'" or "No diagnosis written").
 
-Provide confidence scores for important fields. If handwriting is unclear, do NOT guess. Set the status to "UNCLEAR". If a field is not present, set it to "NOT_FOUND".
+Section A: Patient Identification
+A1: UHID/IPD/OPD Number mentioned
+A2: Patient Name mentioned
+A3: Age mentioned
+A4: Gender mentioned
+A5: Weight documented (where applicable - default YES if adult and not required, but NO if pediatric/chemo and missing)
+A6: Date and time of prescription (Must have BOTH date and time for YES)
+
+Section B: Prescriber Identification
+B1: Doctor's name clearly mentioned
+B2: Registration number mentioned
+B3: Signature present
+B4: Department/unit mentioned
+
+Section C: Medication Order Completeness (Evaluate across all medicines)
+C1: Generic name used (NO if only brand names are used)
+C2: Drug strength mentioned
+C3: Dosage form specified (tablet, syrup, etc.)
+C4: Dose clearly written
+C5: Route mentioned
+C6: Frequency mentioned
+C7: Duration mentioned
+C8: Indication documented (where applicable)
+C9: Allergy status documented (YES if 'No known allergies' or specific allergies listed. NO if completely blank)
+C10: High-risk medicine appropriately identified
+
+Section D: NABH Medication Safety Parameters
+D1: Prescription legible (YES if you can read everything easily, NO if handwriting is terrible)
+D2: Capital letters used for handwritten orders (YES if written in block letters, NO if cursive/lowercase handwriting. YES if printed/EMR)
+D3: Dangerous abbreviations avoided (NO if using U, IU, q.d., etc.)
+D4: Decimal errors absent (NO if missing leading zero or using trailing zero)
+D5: Leading zero used (e.g., 0.5 mg instead of .5 mg)
+D6: Trailing zero avoided (e.g., 5 mg instead of 5.0 mg)
+D7: Look-Alike Sound-Alike (LASA) precautions followed (YES if no obvious LASA confusion)
+
+Section E: Rational Prescribing Indicators
+E1: Drug from hospital formulary (Assume YES unless obviously obscure)
+E2: Antibiotic prescribed rationally (Assume YES unless obviously inappropriate)
+E3: Polypharmacy (>5 drugs) avoided (YES if 5 or fewer drugs, NO if 6 or more)
+E4: Duplication of therapy absent (YES if no two drugs are in same exact class)
+E5: Potential drug interactions absent (YES if no obvious severe interactions)
+E6: Dose appropriate for age/renal/hepatic status (Assume YES unless obviously wrong)
+E7: Monitoring instructions documented (YES if 'come back in X days' or 'check BP' is written)
+
+Section F: Documentation Quality
+F1: Diagnosis documented
+F2: Relevant investigation findings available
+F3: Follow-up advice documented
+F4: Patient instructions documented (e.g., take after food)
+
+Also extract the Patient's Name as a raw string so we can display it on the UI.
 
 Return the output STRICTLY as a JSON object matching this structure:
 {
-  "patientInfo": { "name": { "value": "", "confidence": 1.0, "status": "DETECTED|UNCLEAR|NOT_FOUND" }, ... },
-  "prescriberInfo": { ... },
-  "prescriptionDetails": { ... },
-  "medicines": [ { "rawText": { "value": "", "confidence": 1.0, "status": "DETECTED|UNCLEAR|NOT_FOUND" }, ... } ]
+  "patientName": "John Doe",
+  "audit": {
+    "A1": { "answer": "YES", "evidence": "..." },
+    "A2": { "answer": "YES", "evidence": "..." },
+    "A3": { "answer": "YES", "evidence": "..." },
+    "A4": { "answer": "YES", "evidence": "..." },
+    "A5": { "answer": "YES", "evidence": "..." },
+    "A6": { "answer": "YES", "evidence": "..." },
+    "B1": { "answer": "YES", "evidence": "..." },
+    "B2": { "answer": "YES", "evidence": "..." },
+    "B3": { "answer": "YES", "evidence": "..." },
+    "B4": { "answer": "YES", "evidence": "..." },
+    "C1": { "answer": "YES", "evidence": "..." },
+    "C2": { "answer": "YES", "evidence": "..." },
+    "C3": { "answer": "YES", "evidence": "..." },
+    "C4": { "answer": "YES", "evidence": "..." },
+    "C5": { "answer": "YES", "evidence": "..." },
+    "C6": { "answer": "YES", "evidence": "..." },
+    "C7": { "answer": "YES", "evidence": "..." },
+    "C8": { "answer": "YES", "evidence": "..." },
+    "C9": { "answer": "YES", "evidence": "..." },
+    "C10": { "answer": "YES", "evidence": "..." },
+    "D1": { "answer": "YES", "evidence": "..." },
+    "D2": { "answer": "YES", "evidence": "..." },
+    "D3": { "answer": "YES", "evidence": "..." },
+    "D4": { "answer": "YES", "evidence": "..." },
+    "D5": { "answer": "YES", "evidence": "..." },
+    "D6": { "answer": "YES", "evidence": "..." },
+    "D7": { "answer": "YES", "evidence": "..." },
+    "E1": { "answer": "YES", "evidence": "..." },
+    "E2": { "answer": "YES", "evidence": "..." },
+    "E3": { "answer": "YES", "evidence": "..." },
+    "E4": { "answer": "YES", "evidence": "..." },
+    "E5": { "answer": "YES", "evidence": "..." },
+    "E6": { "answer": "YES", "evidence": "..." },
+    "E7": { "answer": "YES", "evidence": "..." },
+    "F1": { "answer": "YES", "evidence": "..." },
+    "F2": { "answer": "YES", "evidence": "..." },
+    "F3": { "answer": "YES", "evidence": "..." },
+    "F4": { "answer": "YES", "evidence": "..." }
+  }
 }
 `;
 
 async function extractPrescriptionData(imageUrl) {
-  // Mock logic to save API costs during development
   if (process.env.MOCK_AI === 'true') {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
-          patientInfo: {
-            name: { value: "John Doe", confidence: 0.99, status: "DETECTED" },
-            identifier: { value: "OPD-9901", confidence: 0.95, status: "DETECTED" },
-            age: { value: "45", confidence: 0.98, status: "DETECTED" },
-            gender: { value: "M", confidence: 0.99, status: "DETECTED" },
-            weight: { value: null, confidence: 0, status: "NOT_FOUND" }
-          },
-          prescriberInfo: {
-            name: { value: "Dr. Gregory House", confidence: 0.95, status: "DETECTED" },
-            registrationNumber: { value: "MMC-12345", confidence: 0.92, status: "DETECTED" },
-            signaturePresent: { value: true, confidence: 0.99, status: "DETECTED" },
-            department: { value: "Internal Medicine", confidence: 0.9, status: "DETECTED" }
-          },
-          prescriptionDetails: {
-            date: { value: "2024-10-25", confidence: 0.95, status: "DETECTED" },
-            time: { value: null, confidence: 0, status: "NOT_FOUND" },
-            diagnosis: { value: "Gastritis", confidence: 0.85, status: "DETECTED" }
-          },
-          medicines: [
-            {
-              rawText: { value: "Pantoprazole 40mg OD x 5 days", confidence: 0.98, status: "DETECTED" },
-              genericName: { value: "Pantoprazole", confidence: 0.95, status: "DETECTED" },
-              dose: { value: "40mg", confidence: 0.98, status: "DETECTED" },
-              frequency: { value: "OD", confidence: 0.95, status: "DETECTED" },
-              duration: { value: "5 days", confidence: 0.95, status: "DETECTED" }
-            }
-          ]
+          patientName: "Shivaam Varpe (Mock)",
+          audit: {
+            "A1": { answer: "NO", evidence: "No UHID found" },
+            "A2": { answer: "YES", evidence: "Name Shivaam Varpe detected" },
+            "C1": { answer: "NO", evidence: "Brand names like Pan used" },
+            "D1": { answer: "YES", evidence: "Handwriting is mostly legible" }
+          }
         });
-      }, 2000); // 2 second delay to simulate processing
+      }, 2000);
     });
   }
 
   try {
-    // Real implementation: Fetch image from URL and pass to Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { responseMimeType: "application/json" } });
     
-    // Fetch the image
     const response = await fetch(imageUrl);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -97,8 +147,7 @@ async function extractPrescriptionData(imageUrl) {
     const aiResponse = await result.response;
     let text = aiResponse.text();
     
-    // Clean markdown if present (though responseMimeType should handle it)
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
     
     return JSON.parse(text);
   } catch (error) {
