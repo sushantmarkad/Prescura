@@ -36,7 +36,7 @@ async function generateExcelReport(audits) {
   sortedKeys.forEach(key => {
     const criterion = standardCriteria.find(c => c.id === key);
     const headerText = criterion ? `${key}. ${criterion.question}` : key;
-    columns.push({ header: headerText, key: key, width: 35 });
+    columns.push({ header: headerText, key: key, width: 18 }); // Reduced width to shrink horizontal length
   });
 
   worksheet.columns = columns;
@@ -69,6 +69,8 @@ async function generateExcelReport(audits) {
     pattern: 'solid',
     fgColor: { argb: 'FFE0E0E0' }
   };
+  worksheet.getRow(1).alignment = { vertical: 'top', wrapText: true };
+  worksheet.getRow(1).height = 100; // Increase height to accommodate wrapped question text
 
   // Generate buffer
   return await workbook.xlsx.writeBuffer();
