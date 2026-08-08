@@ -265,3 +265,29 @@ a:hover { color: var(--primary-hover); }
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* PRINT STYLES FOR PDF EXPORT */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+  .navbar, button, .btn, .print-hide {
+    display: none !important;
+  }
+  .glass-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    background: white;
+  }
+  .animate-fade-in {
+    animation: none;
+  }
+  .badge-pending {
+    display: none;
+  }
+  /* Remove scrollbars and fix layout for print */
+  div {
+    overflow: visible !important;
+  }
+}

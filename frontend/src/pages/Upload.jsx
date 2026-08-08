@@ -18,7 +18,7 @@ export default function Upload() {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.type.startsWith('image/')) {
+    if (selectedFile && (selectedFile.type.startsWith('image/') || selectedFile.type === 'application/pdf')) {
       setFile(selectedFile);
       setPreviewUrl(URL.createObjectURL(selectedFile));
       setError(null);
@@ -66,7 +66,8 @@ export default function Upload() {
       formData.append('upload_preset', uploadPreset);
       
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
+      // Use 'auto' instead of 'image' to support both images and PDFs natively
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
       
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -214,20 +215,24 @@ export default function Upload() {
           >
             <div style={{ fontSize: '3rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>📄</div>
             <h3>Drag & Drop or Click to Upload</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Supports JPG, PNG (Max 5MB)</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Supports JPG, PNG, PDF (Max 5MB)</p>
           </div>
         ) : (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ 
               width: '100%', 
-              maxHeight: '400px', 
+              height: '400px', 
               overflow: 'hidden', 
               borderRadius: 'var(--radius-md)',
               display: 'flex',
               justifyContent: 'center',
               backgroundColor: '#000'
             }}>
-              <img src={previewUrl} alt="Prescription preview" style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+              {file.type === 'application/pdf' ? (
+                <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+              ) : (
+                <img src={previewUrl} alt="Prescription preview" style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+              )}
             </div>
             
             <div className="flex-between">
@@ -250,7 +255,7 @@ export default function Upload() {
 
         <input 
           type="file" 
-          accept="image/*" 
+          accept="image/*, application/pdf" 
           style={{ display: 'none' }} 
           ref={fileInputRef}
           onChange={handleFileChange}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function AuditReview() {
   const { id } = useParams();
@@ -118,7 +119,11 @@ export default function AuditReview() {
         <h3 style={{ marginBottom: '1rem' }}>Prescription Image</h3>
         <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
           {imageUrl ? (
-            <img src={imageUrl} alt="Prescription" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            imageUrl.includes('.pdf') ? (
+              <iframe src={imageUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+            ) : (
+              <img src={imageUrl} alt="Prescription" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            )
           ) : (
             <div style={{ color: 'var(--text-secondary)' }}>No image available</div>
           )}
@@ -129,7 +134,16 @@ export default function AuditReview() {
       <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0 }}>Audit Checklist</h3>
-          <span className="badge badge-pending">Review Pending</span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span className="badge badge-pending">Review Pending</span>
+            <button 
+              className="btn btn-secondary print-hide" 
+              style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+              onClick={() => window.print()}
+            >
+              📄 PDF Report
+            </button>
+          </div>
         </div>
         
         <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
