@@ -128,15 +128,20 @@ async function extractPrescriptionData(imageUrl) {
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { responseMimeType: "application/json" } });
+    let fetchUrl = imageUrl;
     
-    const response = await fetch(imageUrl);
+    // Cloudinary can automatically convert PDFs to JPEGs on the fly.
+    // Gemini inlineData does not support application/pdf directly, so we convert it to an image!
+    if (fetchUrl.toLowerCase().endsWith('.pdf')) {
+      fetchUrl = fetchUrl.slice(0, -4) + '.jpg';
+    }
+
+    const response = await fetch(fetchUrl);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    let mimeType = response.headers.get('content-type') || 'image/jpeg';
-    if (imageUrl.toLowerCase().includes('.pdf')) {
-      mimeType = 'application/pdf';
-    }
+    // Since Cloudinary converted it, it will always be an image!
+    const mimeType = 'image/jpeg';
     
     const imageParts = [
       {
