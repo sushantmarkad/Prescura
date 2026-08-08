@@ -1,4 +1,5 @@
 const ExcelJS = require('exceljs');
+const { standardCriteria } = require('./auditEngine');
 
 /**
  * Generates an Excel report from audit data.
@@ -33,7 +34,9 @@ async function generateExcelReport(audits) {
 
   // Add dynamic question columns
   sortedKeys.forEach(key => {
-    columns.push({ header: key, key: key, width: 10 });
+    const criterion = standardCriteria.find(c => c.id === key);
+    const headerText = criterion ? `${key}. ${criterion.question}` : key;
+    columns.push({ header: headerText, key: key, width: 35 });
   });
 
   worksheet.columns = columns;
