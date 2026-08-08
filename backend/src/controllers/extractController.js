@@ -21,6 +21,10 @@ async function processPrescription(req, res) {
 
     // Save as PENDING in database so it shows up on dashboard
     if (userId) {
+      if (!db) {
+        throw new Error('Firebase Database (db) is null. This means FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS is not properly set on your Render backend!');
+      }
+      
       await db.collection('prescriptions').doc(auditId).set({
         imageUrl,
         extractedData,

@@ -50,6 +50,8 @@ export default function Upload() {
     let lastAuditId = null;
 
     try {
+      let lastErrorDetails = null;
+
       for (let i = 0; i < selectedFiles.length; i++) {
         const { file } = selectedFiles[i];
         setStatusText(`Processing ${i + 1} of ${selectedFiles.length}: ${file.name}...`);
@@ -84,13 +86,14 @@ export default function Upload() {
           successCount++;
           lastAuditId = data.auditId;
         } else {
-          console.error(`Backend failed for ${file.name}:`, data.details);
+          lastErrorDetails = data.details || data.error || 'Unknown backend error';
+          console.error(`Backend failed for ${file.name}:`, lastErrorDetails);
         }
       }
       
       if (successCount === 0) {
         setStatusText('');
-        setError('Failed to process prescriptions. Please make sure the backend is updated and running.');
+        setError(`Failed to process prescriptions. Error: ${lastErrorDetails || 'Make sure the backend is updated and running.'}`);
         setUploading(false);
         return;
       }
