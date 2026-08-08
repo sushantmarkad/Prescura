@@ -65,17 +65,31 @@ export default function UserDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {audits.map(audit => (
-                    <tr key={audit.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '0.75rem' }}>{new Date(audit.createdAt).toLocaleDateString()}</td>
-                      <td style={{ padding: '0.75rem' }}>{audit.department}</td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <span className={`badge ${audit.classification === 'RATIONAL' ? 'badge-rational' : 'badge-irrational'}`}>
-                          {audit.classification}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {audits.map(audit => {
+                    const classification = audit.finalClassification || audit.classification || 'PENDING';
+                    
+                    // Handle Firestore Timestamp (which serializes as an object with _seconds)
+                    let dateString = 'Invalid Date';
+                    if (audit.createdAt) {
+                      if (audit.createdAt._seconds) {
+                        dateString = new Date(audit.createdAt._seconds * 1000).toLocaleDateString();
+                      } else if (typeof audit.createdAt === 'string') {
+                        dateString = new Date(audit.createdAt).toLocaleDateString();
+                      }
+                    }
+
+                    return (
+                      <tr key={audit.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.75rem' }}>{dateString}</td>
+                        <td style={{ padding: '0.75rem' }}>{audit.department || 'General'}</td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span className={`badge ${classification === 'RATIONAL' ? 'badge-rational' : 'badge-irrational'}`}>
+                            {classification}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
