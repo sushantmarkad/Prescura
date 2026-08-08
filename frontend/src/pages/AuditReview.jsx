@@ -17,14 +17,31 @@ export default function AuditReview() {
   const { currentUser } = useAuth(); // Assume we imported useAuth
 
   useEffect(() => {
-    // If no data is in state, and we have an ID, we could fetch from DB.
-    // For now, if loading is false, it means we got it from state.
-    if (!loading && extractedData) return;
+    const fetchAudit = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${apiUrl}/api/audit/${id}`);
+        const data = await res.json();
+        if (data.success && data.audit) {
+          setImageUrl(data.audit.imageUrl);
+          setExtractedData(data.audit.extractedData);
+          setAuditResults(data.audit.auditResults);
+          if (data.audit.status !== 'PENDING_REVIEW') {
+            setClassification({ status: data.audit.finalClassification, reason: data.audit.classificationReason });
+          }
+        } else {
+          setError("No audit data found. Please go back and upload an image.");
+        }
+      } catch (err) {
+        setError("Failed to fetch audit details from server.");
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Fallback if accessed directly
+    // Fallback if accessed directly or via batch redirect
     if (loading) {
-       setError("No audit data found. Please go back and upload an image.");
-       setLoading(false);
+       fetchAudit();
     }
   }, [id, extractedData, loading]);
 

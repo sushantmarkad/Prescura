@@ -1,10 +1,11 @@
 const { extractPrescriptionData } = require('../services/aiService');
 const { evaluateCriteria } = require('../services/auditEngine');
+const { db } = require('../config/firebase');
 const { v4: uuidv4 } = require('uuid');
 
 async function processPrescription(req, res) {
   try {
-    const { imageUrl } = req.body;
+    const { imageUrl, userId } = req.body;
     
     if (!imageUrl) {
       return res.status(400).json({ error: 'Image URL is required' });
@@ -17,6 +18,19 @@ async function processPrescription(req, res) {
     const auditResults = evaluateCriteria(extractedData);
 
     const auditId = `audit-${uuidv4()}`;
+
+    // Save as PENDING in database so it shows up on dashboard
+    if (userId) {
+      await db.collection('prescriptions').doc(auditId).set({
+        imageUrl,
+        extractedData,
+        auditResults,
+        status: 'PENDING_REVIEW',
+        finalClassification: 'PENDING',
+        finalizedBy: userId,
+        createdAt: new Date(),
+      });
+    }
 
     // Return the result
     return res.status(200).json({

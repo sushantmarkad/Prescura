@@ -73,7 +73,10 @@ export default function Upload() {
         const res = await fetch(`${apiUrl}/api/process`, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: downloadURL }) 
+          body: JSON.stringify({ 
+            imageUrl: downloadURL,
+            userId: currentUser?.uid
+          }) 
         });
         
         const data = await res.json();

@@ -95,9 +95,26 @@ async function getUserAudits(req, res) {
   }
 }
 
+async function getAuditById(req, res) {
+  try {
+    const { id } = req.params;
+    const doc = await db.collection('prescriptions').doc(id).get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Audit not found' });
+    }
+    
+    return res.status(200).json({ success: true, audit: { id: doc.id, ...doc.data() } });
+  } catch (error) {
+    console.error("Get Audit By ID Error:", error);
+    return res.status(500).json({ error: 'Failed to fetch audit details.' });
+  }
+}
+
 module.exports = {
   finalizeAudit,
   getStats,
   exportAudits,
-  getUserAudits
+  getUserAudits,
+  getAuditById
 };
