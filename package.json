@@ -1,0 +1,13 @@
+{
+  "name": "prescription-audit-system",
+  "version": "1.0.0",
+  "description": "AI Prescription Audit System",
+  "scripts": {
+    "start:frontend": "cd frontend && npm run dev",
+    "start:backend": "cd backend && node src/index.js",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+  },
+  "dependencies": {
+    "concurrently": "^10.0.4"
+  }
+}
