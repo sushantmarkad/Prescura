@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import html2pdf from 'html2pdf.js';
 
 export default function AuditReview() {
   const { id } = useParams();
@@ -12,6 +13,7 @@ export default function AuditReview() {
   const [classification, setClassification] = useState(null);
   const [finalizing, setFinalizing] = useState(false);
   const [error, setError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const { currentUser } = useAuth(); // Assume we imported useAuth
 
   useEffect(() => {
@@ -112,6 +114,53 @@ export default function AuditReview() {
     </div>
   );
 
+  const handleDownloadPDF = () => {
+    const html = `
+      <div style="padding: 20px; font-family: sans-serif; color: #333;">
+        <h1 style="color: #0ea5e9; margin-bottom: 10px; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px;">Prescription Audit Report</h1>
+        <p><strong>Audit ID:</strong> ${id}</p>
+        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        
+        <h3 style="margin-top: 20px; background-color: #f1f5f9; padding: 10px;">Classification Result</h3>
+        <p><strong>Status:</strong> <span style="color: ${classification?.status === 'RATIONAL' ? 'green' : 'red'}; font-weight: bold;">${classification?.status || 'Pending'}</span></p>
+        <p><strong>Reason:</strong> ${classification?.reason || 'N/A'}</p>
+
+        <h3 style="margin-top: 20px; background-color: #f1f5f9; padding: 10px;">Detailed Audit Results</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ccc; padding: 8px; text-align: left; background-color: #e2e8f0; width: 35%;">Question</th>
+              <th style="border: 1px solid #ccc; padding: 8px; text-align: center; background-color: #e2e8f0; width: 15%;">Answer</th>
+              <th style="border: 1px solid #ccc; padding: 8px; text-align: left; background-color: #e2e8f0; width: 50%;">Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.values(auditResults).map(r => `
+              <tr>
+                <td style="border: 1px solid #ccc; padding: 8px;">${r.criterionId}. ${r.question}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align: center; font-weight: bold; color: ${r.finalAnswer === 'NO' ? '#ef4444' : '#10b981'};">${r.finalAnswer}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${r.evidence}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const element = document.createElement('div');
+    element.innerHTML = html;
+
+    const opt = {
+      margin:       10,
+      filename:     \`audit_report_${id}.pdf\`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: 'calc(100vh - 200px)' }}>
       {/* LEFT COLUMN: PRESCRIPTION IMAGE */}
@@ -139,7 +188,7 @@ export default function AuditReview() {
             <button 
               className="btn btn-secondary print-hide" 
               style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
-              onClick={() => window.print()}
+              onClick={handleDownloadPDF}
             >
               📄 PDF Report
             </button>
@@ -195,7 +244,7 @@ export default function AuditReview() {
                   // POST TO BACKEND to save
                   try {
                     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                    await fetch(`${apiUrl}/api/audit/finalize`, {
+                    const res = await fetch(`${apiUrl}/api/audit/finalize`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -207,6 +256,11 @@ export default function AuditReview() {
                         userId: currentUser?.uid || 'unknown'
                       })
                     });
+                    
+                    if (res.ok) {
+                      setSaveSuccess(true);
+                      setTimeout(() => setSaveSuccess(false), 3000);
+                    }
                   } catch (e) {
                     console.error("Failed to save audit:", e);
                   }
@@ -219,6 +273,11 @@ export default function AuditReview() {
             </>
           ) : (
             <div style={{ width: '100%', textAlign: 'center', padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: classification.status === 'RATIONAL' ? 'var(--success-light)' : 'var(--danger-light)' }}>
+              {saveSuccess && (
+                <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'var(--success-color)', color: 'white', borderRadius: 'var(--radius-sm)', fontWeight: 'bold' }}>
+                  ✅ Audit saved successfully! You can view it in your Dashboard.
+                </div>
+              )}
               <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: classification.status === 'RATIONAL' ? 'var(--success-color)' : 'var(--danger-color)' }}>
                 FINAL CLASSIFICATION: {classification.status}
               </div>

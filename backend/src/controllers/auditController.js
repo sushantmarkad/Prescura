@@ -66,12 +66,18 @@ async function getUserAudits(req, res) {
     const { uid } = req.params;
     const auditsSnapshot = await db.collection('prescriptions')
       .where('finalizedBy', '==', uid)
-      .orderBy('finalizedAt', 'desc')
       .get();
       
     const audits = [];
     auditsSnapshot.forEach(doc => {
       audits.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Sort in memory to avoid needing a Firestore composite index
+    audits.sort((a, b) => {
+      const dateA = a.finalizedAt ? new Date(a.finalizedAt) : new Date(0);
+      const dateB = b.finalizedAt ? new Date(b.finalizedAt) : new Date(0);
+      return dateB - dateA;
     });
     
     return res.status(200).json({ success: true, audits });
