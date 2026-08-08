@@ -36,31 +36,20 @@ async function getStats(req, res) {
 
 async function exportAudits(req, res) {
   try {
-    // In a real application, you would query Firestore here based on req.query (e.g. date range)
-    // For this boilerplate, we'll generate a dummy export or fetch a limited set.
+    const { uid } = req.query; // If provided, filter by user
     
-    const mockData = [
-      {
-        id: 'audit-1',
-        date: new Date().toISOString(),
-        department: 'Internal Medicine',
-        prescriber: 'Dr. Gregory House',
-        classification: 'RATIONAL',
-        reviewer: 'Admin',
-        answers: { 'A1': 'YES', 'B1': 'YES', 'C1': 'YES' }
-      },
-      {
-        id: 'audit-2',
-        date: new Date().toISOString(),
-        department: 'Cardiology',
-        prescriber: 'Dr. John Watson',
-        classification: 'IRRATIONAL',
-        reviewer: 'Pharmacologist 1',
-        answers: { 'A1': 'NO', 'B1': 'YES', 'C1': 'YES' }
-      }
-    ];
+    let query = db.collection('prescriptions');
+    if (uid) {
+      query = query.where('finalizedBy', '==', uid);
+    }
+    
+    const snapshot = await query.get();
+    const audits = [];
+    snapshot.forEach(doc => {
+      audits.push({ id: doc.id, ...doc.data() });
+    });
 
-    const buffer = await generateExcelReport(mockData);
+    const buffer = await generateExcelReport(audits);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=' + 'audit_export.xlsx');
@@ -75,9 +64,9 @@ async function exportAudits(req, res) {
 async function getUserAudits(req, res) {
   try {
     const { uid } = req.params;
-    const auditsSnapshot = await db.collection('audits')
-      .where('userId', '==', uid)
-      .orderBy('createdAt', 'desc')
+    const auditsSnapshot = await db.collection('prescriptions')
+      .where('finalizedBy', '==', uid)
+      .orderBy('finalizedAt', 'desc')
       .get();
       
     const audits = [];

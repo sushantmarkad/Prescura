@@ -11,7 +11,16 @@ async function generateExcelReport(audits) {
 
   const worksheet = workbook.addWorksheet('Audits');
 
-  // Define Columns
+  // 1. Find all unique question keys dynamically
+  const questionKeys = new Set();
+  audits.forEach(audit => {
+    if (audit.auditResults) {
+      Object.keys(audit.auditResults).forEach(key => questionKeys.add(key));
+    }
+  });
+  const sortedKeys = Array.from(questionKeys).sort();
+
+  // 2. Define Columns
   const columns = [
     { header: 'Audit ID', key: 'id', width: 20 },
     { header: 'Date', key: 'date', width: 15 },
@@ -19,27 +28,34 @@ async function generateExcelReport(audits) {
     { header: 'Prescriber', key: 'prescriber', width: 25 },
     { header: 'Classification', key: 'classification', width: 15 },
     { header: 'Reviewer', key: 'reviewer', width: 20 },
-    // Example criteria columns
-    { header: 'A1 (UHID)', key: 'A1', width: 10 },
-    { header: 'B1 (Dr. Name)', key: 'B1', width: 15 },
-    { header: 'C1 (Generic)', key: 'C1', width: 15 }
+    { header: 'Reason', key: 'reason', width: 30 }
   ];
+
+  // Add dynamic question columns
+  sortedKeys.forEach(key => {
+    columns.push({ header: key, key: key, width: 10 });
+  });
 
   worksheet.columns = columns;
 
-  // Add Rows
+  // 3. Add Rows
   audits.forEach(audit => {
-    worksheet.addRow({
+    const rowData = {
       id: audit.id,
-      date: new Date(audit.date).toLocaleDateString(),
+      date: audit.finalizedAt ? new Date(audit.finalizedAt._seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString(),
       department: audit.department || 'N/A',
       prescriber: audit.prescriber || 'N/A',
-      classification: audit.classification || 'UNKNOWN',
-      reviewer: audit.reviewer || 'N/A',
-      A1: audit.answers?.['A1'] || 'N/A',
-      B1: audit.answers?.['B1'] || 'N/A',
-      C1: audit.answers?.['C1'] || 'N/A',
+      classification: audit.finalClassification || 'UNKNOWN',
+      reviewer: audit.finalizedBy || 'N/A',
+      reason: audit.classificationReason || ''
+    };
+
+    // Add answers to row
+    sortedKeys.forEach(key => {
+      rowData[key] = audit.auditResults?.[key] || 'N/A';
     });
+
+    worksheet.addRow(rowData);
   });
 
   // Style the header row

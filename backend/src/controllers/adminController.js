@@ -22,10 +22,10 @@ const deleteUser = async (req, res) => {
     await auth.deleteUser(uid);
     
     // 2. Anonymize user audits (keep them for analytics, but strip userId)
-    const auditsSnapshot = await db.collection('audits').where('userId', '==', uid).get();
+    const auditsSnapshot = await db.collection('prescriptions').where('finalizedBy', '==', uid).get();
     const batch = db.batch();
     auditsSnapshot.forEach(doc => {
-      batch.update(doc.ref, { userId: 'DELETED_USER' });
+      batch.update(doc.ref, { finalizedBy: 'DELETED_USER' });
     });
     
     // 3. Delete user document from Firestore

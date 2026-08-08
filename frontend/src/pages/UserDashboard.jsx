@@ -30,8 +30,7 @@ export default function UserDashboard() {
 
   const handleExport = () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    // In a real app, you would pass the userId to the export endpoint to only download their data
-    window.open(`${apiUrl}/api/export`);
+    window.open(`${apiUrl}/api/export?uid=${currentUser.uid}`);
   };
 
   return (
