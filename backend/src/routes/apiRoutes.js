@@ -21,4 +21,17 @@ router.delete('/admin/users/:uid', deleteUser);
 router.post('/admin/maintenance', toggleMaintenanceMode);
 router.get('/admin/settings', getSystemSettings);
 
+// Debug Route
+router.get('/debug-models', async (req, res) => {
+  try {
+    const fetch = require('node-fetch') || global.fetch;
+    const key = process.env.AI_API_KEY;
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
