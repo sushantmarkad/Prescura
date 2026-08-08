@@ -116,6 +116,9 @@ export default function AuditReview() {
 
   const handleDownloadPDF = () => {
     const html = `
+      <style>
+        tr, td, th { page-break-inside: avoid; }
+      </style>
       <div style="padding: 20px; font-family: sans-serif; color: #333;">
         <h1 style="color: #0ea5e9; margin-bottom: 10px; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px;">Prescription Audit Report</h1>
         <p><strong>Audit ID:</strong> ${id}</p>

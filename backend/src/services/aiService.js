@@ -132,7 +132,11 @@ async function extractPrescriptionData(imageUrl) {
     const response = await fetch(imageUrl);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const mimeType = response.headers.get('content-type') || 'image/jpeg';
+    
+    let mimeType = response.headers.get('content-type') || 'image/jpeg';
+    if (imageUrl.toLowerCase().includes('.pdf')) {
+      mimeType = 'application/pdf';
+    }
     
     const imageParts = [
       {

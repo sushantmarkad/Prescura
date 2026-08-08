@@ -52,7 +52,8 @@ async function generateExcelReport(audits) {
 
     // Add answers to row
     sortedKeys.forEach(key => {
-      rowData[key] = audit.auditResults?.[key] || 'N/A';
+      const resultObj = audit.auditResults?.[key];
+      rowData[key] = resultObj ? (resultObj.finalAnswer || resultObj.aiAnswer || 'N/A') : 'N/A';
     });
 
     worksheet.addRow(rowData);
