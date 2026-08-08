@@ -132,9 +132,9 @@ export default function AuditReview() {
         ${['A', 'B', 'C', 'D', 'E', 'F'].map(section => {
           const sectionItems = Object.values(auditResults).filter(r => r.section === section);
           if (sectionItems.length === 0) return '';
-          return \`
+          return `
             <div style="page-break-inside: avoid;">
-              <h4 style="color: #0ea5e9; margin-top: 15px; margin-bottom: 5px;">\${sectionItems[0].sectionName}</h4>
+              <h4 style="color: #0ea5e9; margin-top: 15px; margin-bottom: 5px;">${sectionItems[0].sectionName}</h4>
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; border: 1px solid #000;">
                 <thead>
                   <tr>
@@ -144,17 +144,17 @@ export default function AuditReview() {
                   </tr>
                 </thead>
                 <tbody>
-                  \${sectionItems.map(r => \`
+                  ${sectionItems.map(r => `
                     <tr>
-                      <td style="border: 1px solid #000; padding: 8px;">\${r.criterionId}. \${r.question}</td>
-                      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: \${r.finalAnswer === 'NO' ? '#ef4444' : '#10b981'};">\${r.finalAnswer}</td>
-                      <td style="border: 1px solid #000; padding: 8px;">\${r.evidence}</td>
+                      <td style="border: 1px solid #000; padding: 8px;">${r.criterionId}. ${r.question}</td>
+                      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: ${r.finalAnswer === 'NO' ? '#ef4444' : '#10b981'};">${r.finalAnswer}</td>
+                      <td style="border: 1px solid #000; padding: 8px;">${r.evidence}</td>
                     </tr>
-                  \`).join('')}
+                  `).join('')}
                 </tbody>
               </table>
             </div>
-          \`;
+          `;
         }).join('')}
       </div>
     `;
