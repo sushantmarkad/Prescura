@@ -76,7 +76,7 @@ async function extractPrescriptionData(imageUrl) {
 
   try {
     // Real implementation: Fetch image from URL and pass to Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest", generationConfig: { responseMimeType: "application/json" } });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
     
     // Fetch the image
     const response = await fetch(imageUrl);
