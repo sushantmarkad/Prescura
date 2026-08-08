@@ -36,18 +36,26 @@ async function getStats(req, res) {
 
 async function exportAudits(req, res) {
   try {
-    const { uid } = req.query; // If provided, filter by user
+    const { uid, auditId } = req.query; // If provided, filter by user or specific audit
     
     let query = db.collection('prescriptions');
-    if (uid) {
-      query = query.where('finalizedBy', '==', uid);
-    }
-    
-    const snapshot = await query.get();
     const audits = [];
-    snapshot.forEach(doc => {
-      audits.push({ id: doc.id, ...doc.data() });
-    });
+
+    if (auditId) {
+      const doc = await query.doc(auditId).get();
+      if (doc.exists) {
+        audits.push({ id: doc.id, ...doc.data() });
+      }
+    } else {
+      if (uid) {
+        query = query.where('finalizedBy', '==', uid);
+      }
+      
+      const snapshot = await query.get();
+      snapshot.forEach(doc => {
+        audits.push({ id: doc.id, ...doc.data() });
+      });
+    }
 
     const buffer = await generateExcelReport(audits);
 

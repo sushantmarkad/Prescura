@@ -129,20 +129,20 @@ export default function AuditReview() {
         <p><strong>Reason:</strong> ${classification?.reason || 'N/A'}</p>
 
         <h3 style="margin-top: 20px; background-color: #f1f5f9; padding: 10px;">Detailed Audit Results</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; border: 1px solid #000;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: left; background-color: #e2e8f0; width: 35%;">Question</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: center; background-color: #e2e8f0; width: 15%;">Answer</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: left; background-color: #e2e8f0; width: 50%;">Evidence</th>
+              <th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #e2e8f0; width: 35%;">Question</th>
+              <th style="border: 1px solid #000; padding: 8px; text-align: center; background-color: #e2e8f0; width: 15%;">Answer</th>
+              <th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #e2e8f0; width: 50%;">Evidence</th>
             </tr>
           </thead>
           <tbody>
             ${Object.values(auditResults).map(r => `
               <tr>
-                <td style="border: 1px solid #ccc; padding: 8px;">${r.criterionId}. ${r.question}</td>
-                <td style="border: 1px solid #ccc; padding: 8px; text-align: center; font-weight: bold; color: ${r.finalAnswer === 'NO' ? '#ef4444' : '#10b981'};">${r.finalAnswer}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${r.evidence}</td>
+                <td style="border: 1px solid #000; padding: 8px;">${r.criterionId}. ${r.question}</td>
+                <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: ${r.finalAnswer === 'NO' ? '#ef4444' : '#10b981'};">${r.finalAnswer}</td>
+                <td style="border: 1px solid #000; padding: 8px;">${r.evidence}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -162,6 +162,11 @@ export default function AuditReview() {
     };
 
     html2pdf().set(opt).from(element).save();
+  };
+
+  const handleDownloadExcel = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${apiUrl}/api/audit/export?auditId=${id}`;
   };
 
   return (
@@ -191,7 +196,16 @@ export default function AuditReview() {
             <button 
               className="btn btn-secondary print-hide" 
               style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+              onClick={handleDownloadExcel}
+              disabled={!classification} // Only enable if saved
+            >
+              📊 Excel Report
+            </button>
+            <button 
+              className="btn btn-secondary print-hide" 
+              style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
               onClick={handleDownloadPDF}
+              disabled={!classification} // Only enable if saved
             >
               📄 PDF Report
             </button>
