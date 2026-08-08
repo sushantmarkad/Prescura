@@ -1,4 +1,5 @@
 const { saveFinalAudit, getDashboardStats } = require('../services/dbService');
+const { db } = require('../config/firebase');
 const { generateExcelReport } = require('../services/excelService');
 
 async function finalizeAudit(req, res) {
@@ -71,8 +72,29 @@ async function exportAudits(req, res) {
   }
 }
 
+async function getUserAudits(req, res) {
+  try {
+    const { uid } = req.params;
+    const auditsSnapshot = await db.collection('audits')
+      .where('userId', '==', uid)
+      .orderBy('createdAt', 'desc')
+      .get();
+      
+    const audits = [];
+    auditsSnapshot.forEach(doc => {
+      audits.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return res.status(200).json({ success: true, audits });
+  } catch (error) {
+    console.error("Get User Audits Error:", error);
+    return res.status(500).json({ error: 'Failed to fetch user audits.' });
+  }
+}
+
 module.exports = {
   finalizeAudit,
   getStats,
-  exportAudits
+  exportAudits,
+  getUserAudits
 };

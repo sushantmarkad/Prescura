@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -59,6 +59,36 @@ export function AuthProvider({ children }) {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
+  const signup = async (email, password) => {
+    if (isMock) {
+      return Promise.reject(new Error("Cannot signup in mock mode"));
+    }
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Call backend to securely register user and assign role
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const token = await user.getIdToken();
+      await fetch(`${apiUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: user.email, uid: user.uid })
+      });
+      
+      // Fetch role after signup
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) setUserRole(userDoc.data().role);
+    } catch (e) {
+      console.error("Failed to register user in backend", e);
+    }
+    
+    return userCredential;
+  };
+
   const logout = () => {
     if (isMock) {
       setCurrentUser(null);
@@ -72,6 +102,7 @@ export function AuthProvider({ children }) {
     currentUser,
     userRole,
     login,
+    signup,
     logout,
   };
 
