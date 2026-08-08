@@ -71,7 +71,8 @@ export default function Upload() {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           
           try {
-            const res = await fetch('http://localhost:5000/api/process', { 
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiUrl}/api/process`, { 
               method: 'POST', 
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ imageUrl: downloadURL }) 

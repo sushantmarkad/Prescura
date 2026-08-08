@@ -180,7 +180,8 @@ export default function AuditReview() {
 
                   // POST TO BACKEND to save
                   try {
-                    await fetch('http://localhost:5000/api/audit/finalize', {
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                    await fetch(`${apiUrl}/api/audit/finalize`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
