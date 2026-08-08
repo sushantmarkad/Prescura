@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { storage } from '../config/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// import { storage } from '../config/firebase';
+// import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../context/AuthContext';
-import { v4 as uuidv4 } from 'uuid'; // Need to add uuid to frontend
+// import { v4 as uuidv4 } from 'uuid'; // Need to add uuid to frontend
 
 export default function Upload() {
   const [file, setFile] = useState(null);
@@ -51,6 +51,76 @@ export default function Upload() {
         return;
       }
       
+      // --- CLOUDINARY UPLOAD ---
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      
+      if (!cloudName || !uploadPreset) {
+        setError("Cloudinary configuration missing in .env");
+        setUploading(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
+      
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const progressPercent = (e.loaded / e.total) * 100;
+          setProgress(progressPercent);
+        }
+      };
+      
+      xhr.onload = async () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          const downloadURL = response.secure_url;
+          
+          try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiUrl}/api/process`, { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageUrl: downloadURL }) 
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+              navigate(`/audit-review/${data.auditId}`, { 
+                state: { 
+                  imageUrl: downloadURL, 
+                  extractedData: data.extractedData,
+                  auditResults: data.auditResults 
+                } 
+              });
+            } else {
+              setError("Backend processing failed.");
+              setUploading(false);
+            }
+          } catch (err) {
+            console.error("Backend error:", err);
+            setError("Failed to connect to backend server.");
+            setUploading(false);
+          }
+        } else {
+          console.error("Cloudinary upload failed:", xhr.responseText);
+          setError("Image Upload failed. Please try again.");
+          setUploading(false);
+        }
+      };
+      
+      xhr.onerror = () => {
+        setError("Network error during upload.");
+        setUploading(false);
+      };
+      
+      xhr.send(formData);
+
+      /* --- FIREBASE STORAGE BACKUP (COMMENTED OUT) ---
       const fileExt = file.name.split('.').pop();
       const fileName = `prescriptions/${currentUser.uid}/${Date.now()}-${uuidv4()}.${fileExt}`;
       const storageRef = ref(storage, fileName);
@@ -98,6 +168,7 @@ export default function Upload() {
           }
         }
       );
+      */
     } catch (err) {
       console.error(err);
       setError('An unexpected error occurred.');
