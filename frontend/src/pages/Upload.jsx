@@ -88,6 +88,13 @@ export default function Upload() {
         }
       }
       
+      if (successCount === 0) {
+        setStatusText('');
+        setError('Failed to process prescriptions. Please make sure the backend is updated and running.');
+        setUploading(false);
+        return;
+      }
+      
       setProgress(100);
       setStatusText('Upload Complete!');
       
