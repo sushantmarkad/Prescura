@@ -1,4 +1,5 @@
-const { db, admin } = require('../config/firebase');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
 
 /**
  * Saves the finalized audit record and updates global/department statistics
@@ -52,9 +53,9 @@ async function saveFinalAudit(auditData) {
       // If we are replacing a pending review, we'd decrement pending here.
 
       // 3. Write Stats
-      transaction.set(statsRef, { ...stats, lastUpdated: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      transaction.set(statsRef, { ...stats, lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
       if (departmentId !== 'global') {
-        transaction.set(globalStatsRef, { ...globalStats, lastUpdated: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        transaction.set(globalStatsRef, { ...globalStats, lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
       }
 
       // 4. Write the single big audit document (Read optimized)
@@ -65,8 +66,8 @@ async function saveFinalAudit(auditData) {
         finalClassification: classification,
         classificationReason,
         finalizedBy: userId,
-        finalizedAt: admin.firestore.FieldValue.serverTimestamp(),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        finalizedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       };
 
       transaction.set(auditRef, auditRecord);
