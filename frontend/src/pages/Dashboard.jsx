@@ -7,24 +7,33 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a fully integrated app, fetch from backend:
-    // fetch('http://localhost:5000/api/stats').then(r => r.json()).then(data => setStats(data.stats));
+    const fetchStats = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${apiUrl}/api/stats`);
+        const data = await res.json();
+        
+        if (data.success && data.stats) {
+          setStats({
+            totalAudited: data.stats.totalAudited || 0,
+            rational: data.stats.rational || 0,
+            irrational: data.stats.irrational || 0,
+            pending: data.stats.pending || 0
+          });
+        }
+      } catch (e) {
+        console.error("Failed to fetch stats:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Using mock timeout for demo since backend might not be running
-    setTimeout(() => {
-      setStats({
-        totalAudited: 1250,
-        rational: 1100,
-        irrational: 150,
-        pending: 45
-      });
-      setLoading(false);
-    }, 500);
+    fetchStats();
   }, []);
 
   const handleExport = () => {
-    // window.open('http://localhost:5000/api/export');
-    alert("Export triggered! (In production this downloads the Excel file from backend)");
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.open(`${apiUrl}/api/export`);
   };
 
   return (
