@@ -1,7 +1,7 @@
-const Groq = require("groq-sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Initialize Groq SDK
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || process.env.AI_API_KEY || 'mock-key' });
+// Initialize Gemini SDK
+const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || 'mock-key');
 
 const EXTRACTION_PROMPT = `
 You are an expert Clinical Pharmacologist and Quality Manager performing a strict NABH (6th Edition) Prescription Audit.
@@ -127,7 +127,7 @@ async function extractPrescriptionData(imageUrl) {
   }
 
   try {
-
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { responseMimeType: "application/json" } });
     let fetchUrl = imageUrl;
     
     // Cloudinary can automatically convert PDFs to JPEGs on the fly.
@@ -143,29 +143,18 @@ async function extractPrescriptionData(imageUrl) {
     // Since Cloudinary converted it, it will always be an image!
     const mimeType = 'image/jpeg';
     
-    const base64Image = buffer.toString("base64");
-    
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: EXTRACTION_PROMPT },
-            { 
-              type: "image_url", 
-              image_url: { 
-                url: `data:${mimeType};base64,${base64Image}` 
-              } 
-            }
-          ]
+    const imageParts = [
+      {
+        inlineData: {
+          data: buffer.toString("base64"),
+          mimeType
         }
-      ],
-      model: "llama-3.2-90b-vision-preview",
-      temperature: 0,
-      response_format: { type: "json_object" }
-    });
-
-    let text = chatCompletion.choices[0].message.content;
+      }
+    ];
+    
+    const result = await model.generateContent([EXTRACTION_PROMPT, ...imageParts]);
+    const aiResponse = await result.response;
+    let text = aiResponse.text();
     
     text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
     
