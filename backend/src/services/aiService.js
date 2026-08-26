@@ -127,7 +127,7 @@ async function extractPrescriptionData(imageUrl) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { responseMimeType: "application/json" } });
+
     let fetchUrl = imageUrl;
     
     // Cloudinary can automatically convert PDFs to JPEGs on the fly.
