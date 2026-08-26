@@ -63,8 +63,9 @@ F4: Patient instructions documented (e.g., take after food)
 
 Also extract the Patient's Name as a raw string so we can display it on the UI.
 
-Return the output STRICTLY as a JSON object matching this structure:
-{
+Return the output STRICTLY as a JSON array containing one object for each prescription found in the document. Even if there is only one prescription, return it inside an array matching this structure:
+[
+  {
   "patientName": "John Doe",
   "audit": {
     "A1": { "answer": "YES", "evidence": "..." },
@@ -107,21 +108,24 @@ Return the output STRICTLY as a JSON object matching this structure:
     "F4": { "answer": "YES", "evidence": "..." }
   }
 }
+]
 `;
 
 async function extractPrescriptionData(imageUrl) {
   if (process.env.MOCK_AI === 'true') {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({
-          patientName: "Shivaam Varpe (Mock)",
-          audit: {
-            "A1": { answer: "NO", evidence: "No UHID found" },
-            "A2": { answer: "YES", evidence: "Name Shivaam Varpe detected" },
-            "C1": { answer: "NO", evidence: "Brand names like Pan used" },
-            "D1": { answer: "YES", evidence: "Handwriting is mostly legible" }
+        resolve([
+          {
+            patientName: "Shivaam Varpe (Mock)",
+            audit: {
+              "A1": { answer: "NO", evidence: "No UHID found" },
+              "A2": { answer: "YES", evidence: "Name Shivaam Varpe detected" },
+              "C1": { answer: "NO", evidence: "Brand names like Pan used" },
+              "D1": { answer: "YES", evidence: "Handwriting is mostly legible" }
+            }
           }
-        });
+        ]);
       }, 2000);
     });
   }
@@ -129,19 +133,16 @@ async function extractPrescriptionData(imageUrl) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { responseMimeType: "application/json" } });
     let fetchUrl = imageUrl;
+    let mimeType = 'image/jpeg';
     
-    // Cloudinary can automatically convert PDFs to JPEGs on the fly.
-    // Gemini inlineData does not support application/pdf directly, so we convert it to an image!
+    // Support PDF natively by checking the extension
     if (fetchUrl.toLowerCase().endsWith('.pdf')) {
-      fetchUrl = fetchUrl.slice(0, -4) + '.jpg';
+      mimeType = 'application/pdf';
     }
 
     const response = await fetch(fetchUrl);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
-    // Since Cloudinary converted it, it will always be an image!
-    const mimeType = 'image/jpeg';
     
     const imageParts = [
       {

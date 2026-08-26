@@ -47,6 +47,7 @@ export default function Upload() {
     }
 
     let successCount = 0;
+    let totalPrescriptionsProcessed = 0;
     let lastAuditId = null;
 
     try {
@@ -84,7 +85,13 @@ export default function Upload() {
         const data = await res.json();
         if (data.success) {
           successCount++;
-          lastAuditId = data.auditId;
+          if (data.audits && data.audits.length > 0) {
+            totalPrescriptionsProcessed += data.audits.length;
+            lastAuditId = data.audits[0].auditId;
+          } else if (data.auditId) {
+            totalPrescriptionsProcessed += 1;
+            lastAuditId = data.auditId;
+          }
         } else {
           lastErrorDetails = data.details || data.error || 'Unknown backend error';
           console.error(`Backend failed for ${file.name}:`, lastErrorDetails);
@@ -101,8 +108,8 @@ export default function Upload() {
       setProgress(100);
       setStatusText('Upload Complete!');
       
-      // If only 1 file was uploaded and successful, go straight to review
-      if (selectedFiles.length === 1 && successCount === 1) {
+      // If only 1 prescription was successfully extracted overall, go straight to review
+      if (totalPrescriptionsProcessed === 1 && lastAuditId) {
         navigate(`/audit-review/${lastAuditId}`);
       } else {
         // Otherwise, go to dashboard to see all new audits

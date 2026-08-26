@@ -12,36 +12,44 @@ async function processPrescription(req, res) {
     }
 
     // Process the image using AI service
-    const extractedData = await extractPrescriptionData(imageUrl);
+    const extractedDataArray = await extractPrescriptionData(imageUrl);
     
-    // Evaluate deterministic criteria via Audit Engine
-    const auditResults = evaluateCriteria(extractedData);
+    // Ensure it's an array (fallback if AI didn't follow instructions perfectly)
+    const dataArray = Array.isArray(extractedDataArray) ? extractedDataArray : [extractedDataArray];
+    
+    const savedAudits = [];
 
-    const auditId = `audit-${uuidv4()}`;
+    for (const extractedData of dataArray) {
+      // Evaluate deterministic criteria via Audit Engine
+      const auditResults = evaluateCriteria(extractedData);
 
-    // Save as PENDING in database so it shows up on dashboard
-    if (userId) {
-      if (!db) {
-        throw new Error('Firebase Database (db) is null. This means FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS is not properly set on your Render backend!');
+      const auditId = `audit-${uuidv4()}`;
+
+      // Save as PENDING in database so it shows up on dashboard
+      if (userId) {
+        if (!db) {
+          throw new Error('Firebase Database (db) is null. This means FIREBASE_SERVICE_ACCOUNT or GOOGLE_APPLICATION_CREDENTIALS is not properly set on your Render backend!');
+        }
+        
+        await db.collection('prescriptions').doc(auditId).set({
+          imageUrl,
+          extractedData,
+          auditResults,
+          status: 'PENDING_REVIEW',
+          finalClassification: 'PENDING',
+          finalizedBy: userId,
+          createdAt: new Date(),
+        });
       }
       
-      await db.collection('prescriptions').doc(auditId).set({
-        imageUrl,
-        extractedData,
-        auditResults,
-        status: 'PENDING_REVIEW',
-        finalClassification: 'PENDING',
-        finalizedBy: userId,
-        createdAt: new Date(),
-      });
+      savedAudits.push({ auditId, extractedData, auditResults });
     }
 
     // Return the result
     return res.status(200).json({
       success: true,
-      auditId,
-      extractedData,
-      auditResults,
+      audits: savedAudits,
+      auditId: savedAudits.length > 0 ? savedAudits[0].auditId : null,
       status: 'PENDING_REVIEW'
     });
 
