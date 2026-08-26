@@ -103,6 +103,8 @@ export default function Upload() {
         setError(`Failed to process prescriptions. Error: ${lastErrorDetails || 'Make sure the backend is updated and running.'}`);
         setUploading(false);
         return;
+      } else if (successCount < selectedFiles.length) {
+        alert(`${selectedFiles.length - successCount} file(s) failed to process. Error: ${lastErrorDetails}`);
       }
       
       setProgress(100);
