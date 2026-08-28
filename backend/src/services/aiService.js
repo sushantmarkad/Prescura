@@ -177,7 +177,12 @@ async function extractPrescriptionData(imageUrl) {
     
     if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
       text = text.substring(startIndex, endIndex + 1);
-      return JSON.parse(text);
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        console.warn("AI returned malformed JSON that could not be parsed. Returning empty array. AI output:", text);
+        return [];
+      }
     } else {
       // If the model completely ignored the instructions and output no JSON array,
       // return an empty array so the system doesn't crash trying to parse English text as JSON.
