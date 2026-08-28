@@ -15,7 +15,13 @@ async function processPrescription(req, res) {
     const extractedDataArray = await extractPrescriptionData(imageUrl);
     
     // Ensure it's an array (fallback if AI didn't follow instructions perfectly)
-    const dataArray = Array.isArray(extractedDataArray) ? extractedDataArray : [extractedDataArray];
+    let dataArray = Array.isArray(extractedDataArray) ? extractedDataArray : [extractedDataArray];
+    
+    // If the AI returned an empty array (meaning it failed to parse or found nothing),
+    // we MUST still create an audit record so the user sees it in their dashboard.
+    if (dataArray.length === 0) {
+      dataArray = [{}]; 
+    }
     
     const savedAudits = [];
 

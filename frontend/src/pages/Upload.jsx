@@ -53,44 +53,58 @@ export default function Upload() {
     try {
       let lastErrorDetails = null;
 
-      setStatusText(`Processing ${selectedFiles.length} file(s) in parallel...`);
-      setProgress(25);
+      setStatusText(`Uploading & Analyzing ${selectedFiles.length} file(s)...`);
+      setProgress(10);
+      let completedCount = 0;
 
       const uploadPromises = selectedFiles.map(async (sf) => {
         const { file } = sf;
         
-        // 1. Upload to Cloudinary
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', uploadPreset);
-        
-        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!uploadResponse.ok) throw new Error(`Cloudinary upload failed for ${file.name}`);
-        const uploadData = await uploadResponse.json();
-        const downloadURL = uploadData.secure_url;
+        try {
+          // 1. Upload to Cloudinary
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', uploadPreset);
+          
+          const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!uploadResponse.ok) throw new Error(`Cloudinary upload failed for ${file.name}`);
+          const uploadData = await uploadResponse.json();
+          const downloadURL = uploadData.secure_url;
 
-        // 2. Process with AI
-        const res = await fetch(`${apiUrl}/api/process`, { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            imageUrl: downloadURL,
-            userId: currentUser?.uid
-          }) 
-        });
-        
-        return res.json();
+          // 2. Process with AI
+          const res = await fetch(`${apiUrl}/api/process`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              imageUrl: downloadURL,
+              userId: currentUser?.uid
+            }) 
+          });
+          
+          const data = await res.json();
+          
+          completedCount++;
+          setProgress(10 + Math.round((completedCount / selectedFiles.length) * 70));
+          setStatusText(`Analyzed ${completedCount} of ${selectedFiles.length} file(s)...`);
+          
+          return { status: 'fulfilled', value: data, file };
+        } catch (error) {
+          completedCount++;
+          setProgress(10 + Math.round((completedCount / selectedFiles.length) * 70));
+          setStatusText(`Analyzed ${completedCount} of ${selectedFiles.length} file(s)...`);
+          return { status: 'rejected', reason: error, file };
+        }
       });
 
-      const results = await Promise.allSettled(uploadPromises);
-      setProgress(80);
+      const results = await Promise.all(uploadPromises);
+      setProgress(90);
 
-      results.forEach((res, i) => {
-        const file = selectedFiles[i].file;
+      results.forEach((res) => {
+        const file = res.file;
         if (res.status === 'fulfilled') {
           const data = res.value;
           if (data.success) {
@@ -124,11 +138,14 @@ export default function Upload() {
       setProgress(100);
       setStatusText('Upload Complete!');
       
+      // If multiple files were uploaded OR multiple prescriptions found, go to dashboard
+      if (selectedFiles.length > 1 || totalPrescriptionsProcessed > 1) {
+        setTimeout(() => navigate('/dashboard'), 1500);
+      } 
       // If only 1 prescription was successfully extracted overall, go straight to review
-      if (totalPrescriptionsProcessed === 1 && lastAuditId) {
+      else if (totalPrescriptionsProcessed === 1 && lastAuditId) {
         navigate(`/audit-review/${lastAuditId}`);
       } else {
-        // Otherwise, go to dashboard to see all new audits
         setTimeout(() => navigate('/dashboard'), 1500);
       }
       
