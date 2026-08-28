@@ -1,8 +1,8 @@
 const OpenAI = require('openai');
 
-// Initialize OpenAI SDK for OpenRouter
+// Initialize OpenAI SDK for NVIDIA
 const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
+  baseURL: "https://integrate.api.nvidia.com/v1",
   apiKey: process.env.AI_API_KEY || 'mock-key',
 });
 
@@ -150,7 +150,7 @@ async function extractPrescriptionData(imageUrl) {
     const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
     const completion = await openai.chat.completions.create({
-      model: "google/gemini-2.5-flash",
+      model: "meta/llama-3.2-11b-vision-instruct",
       messages: [
         {
           role: "user",
@@ -164,7 +164,8 @@ async function extractPrescriptionData(imageUrl) {
             }
           ]
         }
-      ]
+      ],
+      max_tokens: 4096
     });
     
     let text = completion.choices[0].message.content;
