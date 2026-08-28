@@ -1,7 +1,10 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require('openai');
 
-// Initialize Gemini SDK
-const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || 'mock-key');
+// Initialize OpenAI SDK for OpenRouter
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.AI_API_KEY || 'mock-key',
+});
 
 const EXTRACTION_PROMPT = `
 You are an expert Clinical Pharmacologist and Quality Manager performing a strict NABH (6th Edition) Prescription Audit.
@@ -131,7 +134,6 @@ async function extractPrescriptionData(imageUrl) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: { responseMimeType: "application/json" } });
     let fetchUrl = imageUrl;
     let mimeType = 'image/jpeg';
     
@@ -144,19 +146,28 @@ async function extractPrescriptionData(imageUrl) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    const imageParts = [
-      {
-        inlineData: {
-          data: buffer.toString("base64"),
-          mimeType
+    const base64Data = buffer.toString("base64");
+    const dataUrl = `data:${mimeType};base64,${base64Data}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: EXTRACTION_PROMPT },
+            {
+              type: "image_url",
+              image_url: {
+                url: dataUrl
+              }
+            }
+          ]
         }
-      }
-    ];
+      ]
+    });
     
-    const result = await model.generateContent([EXTRACTION_PROMPT, ...imageParts]);
-    const aiResponse = await result.response;
-    let text = aiResponse.text();
-    
+    let text = completion.choices[0].message.content;
     text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
     
     return JSON.parse(text);
