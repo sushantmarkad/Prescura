@@ -138,13 +138,9 @@ export default function Upload() {
       setProgress(100);
       setStatusText('Upload Complete!');
       
-      // If multiple files were uploaded OR multiple prescriptions found, go to dashboard
-      if (selectedFiles.length > 1 || totalPrescriptionsProcessed > 1) {
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } 
-      // If only 1 prescription was successfully extracted overall, go straight to review
-      else if (totalPrescriptionsProcessed === 1 && lastAuditId) {
-        navigate(`/audit-review/${lastAuditId}`);
+      // Always route to the review page of the most recently processed prescription
+      if (lastAuditId) {
+        setTimeout(() => navigate(`/audit-review/${lastAuditId}`), 1000);
       } else {
         setTimeout(() => navigate('/dashboard'), 1500);
       }

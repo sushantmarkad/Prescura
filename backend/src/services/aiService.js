@@ -177,12 +177,13 @@ async function extractPrescriptionData(imageUrl) {
     
     if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
       text = text.substring(startIndex, endIndex + 1);
+      return JSON.parse(text);
     } else {
-      // Fallback if no brackets found (though the prompt explicitly asks for an array)
-      text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+      // If the model completely ignored the instructions and output no JSON array,
+      // return an empty array so the system doesn't crash trying to parse English text as JSON.
+      console.warn("AI returned no JSON array brackets. Returning empty array. AI output:", text);
+      return [];
     }
-    
-    return JSON.parse(text);
   } catch (error) {
     console.error("AI Extraction Error:", error);
     throw error;
