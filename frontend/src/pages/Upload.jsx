@@ -53,11 +53,12 @@ export default function Upload() {
     try {
       let lastErrorDetails = null;
 
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const { file } = selectedFiles[i];
-        setStatusText(`Processing ${i + 1} of ${selectedFiles.length}: ${file.name}...`);
-        setProgress(Math.round(((i) / selectedFiles.length) * 100));
+      setStatusText(`Processing ${selectedFiles.length} file(s) in parallel...`);
+      setProgress(25);
 
+      const uploadPromises = selectedFiles.map(async (sf) => {
+        const { file } = sf;
+        
         // 1. Upload to Cloudinary
         const formData = new FormData();
         formData.append('file', file);
@@ -82,21 +83,34 @@ export default function Upload() {
           }) 
         });
         
-        const data = await res.json();
-        if (data.success) {
-          successCount++;
-          if (data.audits && data.audits.length > 0) {
-            totalPrescriptionsProcessed += data.audits.length;
-            lastAuditId = data.audits[0].auditId;
-          } else if (data.auditId) {
-            totalPrescriptionsProcessed += 1;
-            lastAuditId = data.auditId;
+        return res.json();
+      });
+
+      const results = await Promise.allSettled(uploadPromises);
+      setProgress(80);
+
+      results.forEach((res, i) => {
+        const file = selectedFiles[i].file;
+        if (res.status === 'fulfilled') {
+          const data = res.value;
+          if (data.success) {
+            successCount++;
+            if (data.audits && data.audits.length > 0) {
+              totalPrescriptionsProcessed += data.audits.length;
+              lastAuditId = data.audits[0].auditId;
+            } else if (data.auditId) {
+              totalPrescriptionsProcessed += 1;
+              lastAuditId = data.auditId;
+            }
+          } else {
+            lastErrorDetails = data.details || data.error || 'Unknown backend error';
+            console.error(`Backend failed for ${file.name}:`, lastErrorDetails);
           }
         } else {
-          lastErrorDetails = data.details || data.error || 'Unknown backend error';
-          console.error(`Backend failed for ${file.name}:`, lastErrorDetails);
+          lastErrorDetails = res.reason?.message || res.reason || 'Network error';
+          console.error(`Fetch failed for ${file.name}:`, res.reason);
         }
-      }
+      });
       
       if (successCount === 0) {
         setStatusText('');

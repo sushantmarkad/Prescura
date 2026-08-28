@@ -112,6 +112,8 @@ Return the output STRICTLY as a JSON array containing one object for each prescr
   }
 }
 ]
+
+CRITICAL INSTRUCTION: You MUST output ONLY a valid JSON array. Do not include any conversational text, markdown formatting, or step-by-step reasoning. Your output must start with '[' and end with ']'.
 `;
 
 async function extractPrescriptionData(imageUrl) {
