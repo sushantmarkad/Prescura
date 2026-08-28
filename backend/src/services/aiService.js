@@ -169,7 +169,16 @@ async function extractPrescriptionData(imageUrl) {
     });
     
     let text = completion.choices[0].message.content;
-    text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    
+    const startIndex = text.indexOf('[');
+    const endIndex = text.lastIndexOf(']');
+    
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+      text = text.substring(startIndex, endIndex + 1);
+    } else {
+      // Fallback if no brackets found (though the prompt explicitly asks for an array)
+      text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    }
     
     return JSON.parse(text);
   } catch (error) {
