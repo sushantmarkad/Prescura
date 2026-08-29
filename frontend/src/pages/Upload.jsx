@@ -136,13 +136,19 @@ export default function Upload() {
       }
       
       setProgress(100);
-      setStatusText('Upload Complete!');
-      
-      // Always route to the review page of the most recently processed prescription
-      if (lastAuditId) {
-        setTimeout(() => navigate(`/audit-review/${lastAuditId}`), 1000);
+      if (selectedFiles.length > 1) {
+        setStatusText(`${successCount} prescription(s) processed! Redirecting to Dashboard...`);
       } else {
-        setTimeout(() => navigate('/dashboard'), 1500);
+        setStatusText('Upload Complete!');
+      }
+      
+      // Smart routing:
+      // - 1 file → go directly to its review page
+      // - 2+ files → go to Dashboard to see all results in the grid
+      if (selectedFiles.length === 1 && lastAuditId) {
+        setTimeout(() => navigate(`/audit-review/${lastAuditId}`), 800);
+      } else {
+        setTimeout(() => navigate('/dashboard'), 800);
       }
       
     } catch (err) {
