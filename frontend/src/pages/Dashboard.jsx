@@ -1,6 +1,66 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+// import { db } from '../config/firebase'; // Removed as we route via backend now
+// import { doc, deleteDoc } from 'firebase/firestore'; // Removed
+
+/* ─── Portal Delete Modal ─── */
+function DeleteModal({ onCancel, onConfirm, isDeleting }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 99999, padding: '1.5rem',
+        animation: 'overlayIn 0.2s ease forwards',
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !isDeleting) onCancel(); }}
+    >
+      <div style={{
+        background: 'var(--surface-color)', border: '1px solid var(--border-color)',
+        borderRadius: '20px', boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+        width: '100%', maxWidth: '380px', padding: '2rem 1.75rem',
+        textAlign: 'center', animation: 'modalUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
+      }}>
+        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--danger-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', margin: '0 auto 1.25rem' }}>🗑️</div>
+        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem', color: 'var(--text-primary)', fontWeight: 700 }}>Delete Prescription?</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.65, margin: '0 0 1.75rem' }}>
+          This prescription audit will be <strong>permanently deleted</strong>. This action cannot be undone.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={onCancel} disabled={isDeleting} style={{ flex: 1, padding: '0.7rem', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', border: '1.5px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', opacity: isDeleting ? 0.5 : 1 }}>Cancel</button>
+          <button onClick={onConfirm} disabled={isDeleting} style={{ flex: 1, padding: '0.7rem', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', border: 'none', background: 'var(--danger-color)', color: '#fff', opacity: isDeleting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+            {isDeleting ? (<><span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />Deleting...</>) : 'Delete'}
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes overlayIn{from{opacity:0}to{opacity:1}}@keyframes modalUp{from{opacity:0;transform:translateY(28px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>,
+    document.body
+  );
+}
+
+/* ─── Portal Toast ─── */
+function Toast({ message, type, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  return createPortal(
+    <div style={{ position: 'fixed', bottom: 'max(1.5rem, env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', zIndex: 99999, animation: 'toastIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards', pointerEvents: 'none' }}>
+      <div style={{ background: type === 'error' ? 'var(--danger-color)' : '#10b981', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '50px', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+        {type === 'error' ? '⚠️' : '✅'} {message}
+      </div>
+      <style>{`@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>,
+    document.body
+  );
+}
 
 export default function Dashboard() {
   const { currentUser, userRole } = useAuth();
@@ -10,8 +70,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   // Filter & sort state
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'completed'
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' | 'oldest'
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'RATIONAL' | 'IRRATIONAL' | 'PENDING_REVIEW'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'RATIONAL' | 'IRRATIONAL'
+  const [deleteAuditId, setDeleteAuditId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((message, type = 'success') => setToast({ message, type }), []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,12 +121,15 @@ export default function Dashboard() {
   const filteredAndSorted = useMemo(() => {
     let result = [...audits];
 
-    // Filter
-    if (filterStatus !== 'all') {
-      result = result.filter(a => {
-        if (filterStatus === 'PENDING_REVIEW') return a.status === 'PENDING_REVIEW';
-        return a.finalClassification === filterStatus;
-      });
+    // Split by tab
+    if (activeTab === 'pending') {
+      result = result.filter(a => a.status === 'PENDING_REVIEW');
+    } else {
+      result = result.filter(a => a.status !== 'PENDING_REVIEW');
+      // Filter within completed
+      if (filterStatus !== 'all') {
+        result = result.filter(a => a.finalClassification === filterStatus);
+      }
     }
 
     // Sort
@@ -71,11 +140,43 @@ export default function Dashboard() {
     });
 
     return result;
-  }, [audits, sortOrder, filterStatus]);
+  }, [audits, activeTab, sortOrder, filterStatus]);
+
+  const handleDeleteClick = (e, id) => {
+    e.stopPropagation();
+    setDeleteAuditId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteAuditId) return;
+    setIsDeleting(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${apiUrl}/api/audit/${deleteAuditId}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete on server');
+      }
+
+      setAudits(prev => prev.filter(a => a.id !== deleteAuditId));
+      setDeleteAuditId(null);
+      showToast('Prescription deleted successfully.');
+    } catch (err) {
+      console.error('Delete Error:', err);
+      setDeleteAuditId(null);
+      showToast(err.message || 'Failed to delete. Please try again.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleExportCSV = () => {
     if (filteredAndSorted.length === 0) {
-      alert('No records to export with current filters.');
+      showToast('No records to export with current filters.', 'error');
       return;
     }
 
@@ -137,7 +238,6 @@ export default function Dashboard() {
     { label: 'All', value: 'all' },
     { label: '🟢 Rational', value: 'RATIONAL' },
     { label: '🔴 Irrational', value: 'IRRATIONAL' },
-    { label: '🟡 Pending', value: 'PENDING_REVIEW' },
   ];
 
   return (
@@ -170,6 +270,34 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        <button
+          onClick={() => setActiveTab('pending')}
+          style={{
+            background: 'none', border: 'none', padding: '0.5rem 1rem', fontSize: '1rem', cursor: 'pointer',
+            color: activeTab === 'pending' ? 'var(--accent-color)' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'pending' ? '2px solid var(--accent-color)' : '2px solid transparent',
+            fontWeight: activeTab === 'pending' ? 'bold' : 'normal',
+            transition: 'all 0.2s'
+          }}
+        >
+          Pending Review
+        </button>
+        <button
+          onClick={() => setActiveTab('completed')}
+          style={{
+            background: 'none', border: 'none', padding: '0.5rem 1rem', fontSize: '1rem', cursor: 'pointer',
+            color: activeTab === 'completed' ? 'var(--accent-color)' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'completed' ? '2px solid var(--accent-color)' : '2px solid transparent',
+            fontWeight: activeTab === 'completed' ? 'bold' : 'normal',
+            transition: 'all 0.2s'
+          }}
+        >
+          Completed
+        </button>
+      </div>
+
       {/* Toolbar: Sort + Filter + Export */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center',
@@ -195,27 +323,29 @@ export default function Dashboard() {
 
         <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }} />
 
-        {/* Filter buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Filter:</span>
-          {filterButtons.map(fb => (
-            <button
-              key={fb.value}
-              onClick={() => setFilterStatus(fb.value)}
-              style={{
-                padding: '0.4rem 0.9rem', borderRadius: '20px', fontSize: '0.82rem',
-                cursor: 'pointer', border: '1px solid',
-                borderColor: filterStatus === fb.value ? 'var(--accent-color)' : 'var(--border-color)',
-                background: filterStatus === fb.value ? 'var(--accent-color)' : 'transparent',
-                color: filterStatus === fb.value ? '#fff' : 'var(--text-secondary)',
-                transition: 'all 0.2s',
-                fontWeight: filterStatus === fb.value ? '600' : '400'
-              }}
-            >
-              {fb.label}
-            </button>
-          ))}
-        </div>
+        {/* Filter buttons (only for Completed tab) */}
+        {activeTab === 'completed' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Filter:</span>
+            {filterButtons.map(fb => (
+              <button
+                key={fb.value}
+                onClick={() => setFilterStatus(fb.value)}
+                style={{
+                  padding: '0.4rem 0.9rem', borderRadius: '20px', fontSize: '0.82rem',
+                  cursor: 'pointer', border: '1px solid',
+                  borderColor: filterStatus === fb.value ? 'var(--accent-color)' : 'var(--border-color)',
+                  background: filterStatus === fb.value ? 'var(--accent-color)' : 'transparent',
+                  color: filterStatus === fb.value ? '#fff' : 'var(--text-secondary)',
+                  transition: 'all 0.2s',
+                  fontWeight: filterStatus === fb.value ? '600' : '400'
+                }}
+              >
+                {fb.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div style={{ marginLeft: 'auto' }}>
           <button
@@ -268,8 +398,17 @@ export default function Dashboard() {
                   ? <img src={audit.imageUrl} alt="Prescription" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>No Image</div>
                 }
-                <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+                <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   {getStatusBadge(audit.status, audit.finalClassification)}
+                  <button 
+                    onClick={(e) => handleDeleteClick(e, audit.id)}
+                    style={{ background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--danger-color)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
+                    title="Delete Audit"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
               <div style={{ padding: '1rem 1.1rem' }}>
@@ -284,6 +423,23 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      )}
+      {/* Portal-rendered Delete Modal */}
+      {deleteAuditId && (
+        <DeleteModal
+          onCancel={() => !isDeleting && setDeleteAuditId(null)}
+          onConfirm={confirmDelete}
+          isDeleting={isDeleting}
+        />
+      )}
+
+      {/* Portal-rendered Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

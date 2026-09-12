@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { processPrescription } = require('../controllers/extractController');
-const { finalizeAudit, getStats, exportAudits, getUserAudits, getAuditById } = require('../controllers/auditController');
+const { finalizeAudit, getStats, exportAudits, getUserAudits, getAuditById, deleteAuditHandler } = require('../controllers/auditController');
 const { registerUser } = require('../controllers/authController');
 const { getAllUsers, deleteUser, toggleMaintenanceMode, getSystemSettings } = require('../controllers/adminController');
 
@@ -11,6 +11,7 @@ router.post('/audit/finalize', finalizeAudit);
 router.get('/stats', getStats);
 router.get('/export', exportAudits);
 router.get('/audit/:id', getAuditById);
+router['delete']('/audit/:id', deleteAuditHandler);
 
 // User Auth & Personal Data Routes
 router.post('/auth/register', registerUser);
@@ -18,7 +19,7 @@ router.get('/user/audits/:uid', getUserAudits);
 
 // Admin Routes (In production, these must be protected by a middleware verifying admin role)
 router.get('/admin/users', getAllUsers);
-router.delete('/admin/users/:uid', deleteUser);
+router['delete']('/admin/users/:uid', deleteUser);
 router.post('/admin/maintenance', toggleMaintenanceMode);
 router.get('/admin/settings', getSystemSettings);
 

@@ -1,4 +1,4 @@
-const { saveFinalAudit, getDashboardStats } = require('../services/dbService');
+const { saveFinalAudit, getDashboardStats, deleteAudit, getCached, setCache, clearCache } = require('../services/dbService');
 const { db } = require('../config/firebase');
 const { generateExcelReport } = require('../services/excelService');
 
@@ -10,6 +10,9 @@ async function finalizeAudit(req, res) {
     // const userId = req.user.uid;
     
     const result = await saveFinalAudit(auditData);
+    
+    clearCache('stats_');
+    clearCache('audits_');
     
     return res.status(200).json({
       success: true,
@@ -25,7 +28,15 @@ async function finalizeAudit(req, res) {
 async function getStats(req, res) {
   try {
     const departmentId = req.query.department || 'global';
+    
+    const cacheKey = `stats_${departmentId}`;
+    const cachedStats = getCached(cacheKey);
+    if (cachedStats) {
+      return res.status(200).json({ success: true, stats: cachedStats });
+    }
+
     const stats = await getDashboardStats(departmentId);
+    setCache(cacheKey, stats);
     
     return res.status(200).json({ success: true, stats });
   } catch (error) {
@@ -72,6 +83,13 @@ async function exportAudits(req, res) {
 async function getUserAudits(req, res) {
   try {
     const { uid } = req.params;
+    
+    const cacheKey = `audits_${uid}`;
+    const cachedAudits = getCached(cacheKey);
+    if (cachedAudits) {
+      return res.status(200).json({ success: true, audits: cachedAudits });
+    }
+
     const auditsSnapshot = await db.collection('prescriptions')
       .where('finalizedBy', '==', uid)
       .get();
@@ -87,6 +105,8 @@ async function getUserAudits(req, res) {
       const dateB = b.finalizedAt ? new Date(b.finalizedAt) : new Date(0);
       return dateB - dateA;
     });
+    
+    setCache(cacheKey, audits);
     
     return res.status(200).json({ success: true, audits });
   } catch (error) {
@@ -111,10 +131,27 @@ async function getAuditById(req, res) {
   }
 }
 
+async function deleteAuditHandler(req, res) {
+  try {
+    const { id } = req.params;
+    await deleteAudit(id);
+    
+    // Clear caches
+    clearCache('stats_');
+    clearCache('audits_');
+
+    return res.status(200).json({ success: true, message: 'Audit deleted successfully' });
+  } catch (error) {
+    console.error("Delete Audit Error:", error);
+    return res.status(500).json({ error: 'Failed to delete audit.' });
+  }
+}
+
 module.exports = {
   finalizeAudit,
   getStats,
   exportAudits,
   getUserAudits,
-  getAuditById
+  getAuditById,
+  deleteAuditHandler
 };

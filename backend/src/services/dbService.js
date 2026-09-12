@@ -1,6 +1,28 @@
 const { db } = require('../config/firebase');
 const { FieldValue } = require('firebase-admin/firestore');
 
+// Simple in-memory cache to reduce Firebase reads
+const memoryCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCached(key) {
+  if (memoryCache.has(key)) {
+    const { data, timestamp } = memoryCache.get(key);
+    if (Date.now() - timestamp < CACHE_TTL) return data;
+  }
+  return null;
+}
+
+function setCache(key, data) {
+  memoryCache.set(key, { data, timestamp: Date.now() });
+}
+
+function clearCache(prefix) {
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith(prefix)) memoryCache.delete(key);
+  }
+}
+
 /**
  * Saves the finalized audit record and updates global/department statistics
  * transactionally to minimize read/write costs and ensure consistency.
@@ -107,7 +129,65 @@ async function getDashboardStats(departmentId = 'global') {
   }
 }
 
+/**
+ * Deletes an audit record and updates statistics (non-transactionally for reliability)
+ */
+async function deleteAudit(auditId, departmentId = 'global') {
+  if (!db) {
+    return { success: true };
+  }
+
+  try {
+    const auditRef = db.collection('prescriptions').doc(auditId);
+
+    // 1. Read the audit document first
+    const auditDoc = await auditRef.get();
+    if (!auditDoc.exists) {
+      throw new Error('Audit not found');
+    }
+
+    const auditData = auditDoc.data();
+    const isFinalized = auditData.status === 'FINALIZED';
+    const isRational = auditData.finalClassification === 'RATIONAL';
+    const isIrrational = auditData.finalClassification === 'IRRATIONAL';
+
+    // 2. Delete the document
+    await auditRef.delete();
+
+    // 3. Update stats separately (best-effort, won't block delete)
+    if (isFinalized) {
+      try {
+        const { FieldValue } = require('firebase-admin/firestore');
+        const statsRef = db.collection('dashboardStats').doc(departmentId);
+        const globalStatsRef = db.collection('dashboardStats').doc('global');
+
+        const updates = { totalAudited: FieldValue.increment(-1), lastUpdated: FieldValue.serverTimestamp() };
+        if (isRational) updates.rational = FieldValue.increment(-1);
+        if (isIrrational) updates.irrational = FieldValue.increment(-1);
+
+        await statsRef.update(updates);
+        if (departmentId !== 'global') {
+          await globalStatsRef.update(updates);
+        }
+      } catch (statsErr) {
+        // Stats update failed but document was deleted — acceptable
+        console.warn('Stats update failed after delete (non-critical):', statsErr.message);
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting audit:', error);
+    throw error;
+  }
+}
+
+
 module.exports = {
   saveFinalAudit,
-  getDashboardStats
+  getDashboardStats,
+  deleteAudit,
+  getCached,
+  setCache,
+  clearCache
 };

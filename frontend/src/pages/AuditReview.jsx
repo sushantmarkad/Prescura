@@ -196,8 +196,19 @@ export default function AuditReview() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: 'calc(100vh - 200px)' }}>
-      {/* LEFT COLUMN: PRESCRIPTION IMAGE */}
+    <>
+      <style>{`
+        @keyframes slide-down {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+      <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+        {/* LEFT COLUMN: PRESCRIPTION IMAGE */}
       <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <h3 style={{ marginBottom: '1rem' }}>Prescription Image</h3>
         <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
@@ -314,19 +325,33 @@ export default function AuditReview() {
               </button>
             </>
           ) : (
-            <div style={{ width: '100%', textAlign: 'center', padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: classification.status === 'RATIONAL' ? 'var(--success-light)' : 'var(--danger-light)' }}>
+            <div className="animate-fade-in" style={{ width: '100%', textAlign: 'center', padding: '1.5rem', borderRadius: '16px', backgroundColor: classification.status === 'RATIONAL' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', border: classification.status === 'RATIONAL' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', transition: 'all 0.3s ease' }}>
               {saveSuccess && (
-                <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'var(--success-color)', color: 'white', borderRadius: 'var(--radius-sm)', fontWeight: 'bold' }}>
-                  ✅ Audit saved successfully! You can view it in your Dashboard.
+                <div style={{ marginBottom: '1.5rem', padding: '0.85rem 1.2rem', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', fontWeight: '500', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', animation: 'slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                  <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', padding: '4px', borderRadius: '50%', display: 'flex' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  Audit saved successfully! You can view it in your Dashboard.
                 </div>
               )}
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: classification.status === 'RATIONAL' ? 'var(--success-color)' : 'var(--danger-color)' }}>
+              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                {classification.status === 'RATIONAL' ? (
+                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--success-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                   </div>
+                ) : (
+                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                   </div>
+                )}
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.02em', color: classification.status === 'RATIONAL' ? 'var(--success-color)' : 'var(--danger-color)' }}>
                 FINAL CLASSIFICATION: {classification.status}
               </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.75rem', lineHeight: '1.5', maxWidth: '90%', margin: '0.75rem auto 0' }}>
                 Reason: {classification.reason}
               </div>
-              <button className="btn btn-secondary" style={{ marginTop: '1rem' }} onClick={() => setClassification(null)}>
+              <button className="btn btn-secondary" style={{ marginTop: '1.5rem', padding: '0.6rem 1.2rem', borderRadius: '999px', fontSize: '0.85rem' }} onClick={() => setClassification(null)}>
                 Edit Audit
               </button>
             </div>
@@ -334,5 +359,6 @@ export default function AuditReview() {
         </div>
       </div>
     </div>
+    </>
   );
 }
