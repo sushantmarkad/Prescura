@@ -37,7 +37,7 @@ const ArrowRightIcon = () => (
 /* ═══════════════════════════════════════════
    PRIVACY MASKING CANVAS COMPONENT
    ═══════════════════════════════════════════ */
-function PrivacyMasker({ imageFile, onMaskingDone, onSkip }) {
+function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, totalIdx = 1 }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
@@ -180,7 +180,7 @@ function PrivacyMasker({ imageFile, onMaskingDone, onSkip }) {
       <div className="pm-header">
         <div className="pm-header-icon"><ShieldIcon /></div>
         <div className="pm-header-text">
-          <h3>Privacy Masking</h3>
+          <h3>Privacy Masking {totalIdx > 1 ? `(${currentIdx} of ${totalIdx})` : ''}</h3>
           <p>Draw boxes to redact patient PII before AI analysis</p>
         </div>
       </div>
@@ -315,10 +315,13 @@ export default function Upload() {
     let lastErrorDetails = null;
     let completed = 0;
 
-    setStatusText(`Uploading ${files.length} file(s)…`);
+    setStatusText(`Starting analysis for ${files.length} file(s)…`);
     setProgress(10);
 
-    const uploadPromises = files.map(async (sf) => {
+    const results = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const sf = files[i];
       const fileToUpload = sf.maskedFile || sf.file;
       try {
         // 1. Upload to Cloudinary
@@ -341,18 +344,16 @@ export default function Upload() {
           }),
         });
         const data = await res.json();
-        completed++;
-        setProgress(10 + Math.round((completed / files.length) * 80));
-        setStatusText(`Analyzed ${completed} of ${files.length} file(s)…`);
-        return { status: 'fulfilled', value: data, sf };
+        
+        results.push({ status: 'fulfilled', value: data, sf });
       } catch (err) {
-        completed++;
-        setProgress(10 + Math.round((completed / files.length) * 80));
-        return { status: 'rejected', reason: err, sf };
+        results.push({ status: 'rejected', reason: err, sf });
       }
-    });
 
-    const results = await Promise.all(uploadPromises);
+      completed++;
+      setProgress(10 + Math.round((completed / files.length) * 85));
+      setStatusText(`Analyzed ${completed} of ${files.length} file(s)…`);
+    }
     setProgress(95);
 
     results.forEach(r => {
@@ -545,9 +546,12 @@ export default function Upload() {
         {/* ── STEP: MASK ── */}
         {step === 'mask' && currentMaskFile && (
           <PrivacyMasker
+            key={maskingIndex}
             imageFile={currentMaskFile.file}
             onMaskingDone={onMaskDone}
             onSkip={onSkipMask}
+            currentIdx={maskingIndex + 1}
+            totalIdx={selectedFiles.length}
           />
         )}
 

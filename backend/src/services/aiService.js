@@ -196,12 +196,13 @@ async function extractPrescriptionData(imageUrl, privacyMasked = false) {
     const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
     // Build prompt: inject masking addendum if the user redacted any regions
-    const prompt = privacyMasked ? BASE_PROMPT + MASKING_ADDENDUM : BASE_PROMPT;
+    let prompt = privacyMasked ? BASE_PROMPT + MASKING_ADDENDUM : BASE_PROMPT;
+    prompt += `\n\nCRITICAL: You MUST include all keys in the "audit" object, from "A1" through "F4". Do not skip ANY parameter.`;
 
     console.log(`[AI] Processing prescription. privacyMasked=${privacyMasked}, imageSize=${buffer.length} bytes`);
 
     const completion = await openai.chat.completions.create({
-      model: "meta/llama-3.2-11b-vision-instruct",
+      model: "meta/llama-3.2-90b-vision-instruct",
       messages: [
         {
           role: "user",
