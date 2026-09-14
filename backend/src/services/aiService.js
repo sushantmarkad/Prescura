@@ -18,8 +18,8 @@ For each parameter, provide a brief 1-sentence evidence string explaining your r
 Section A: Patient Identification
 A1: UHID/IPD/OPD Number mentioned
 A2: Patient Name mentioned
-A3: Age mentioned
-A4: Gender mentioned
+A3: Age mentioned (HINT: Often written together with gender, e.g. "41/M" or "41 M" under Sex/Age. If you see a number like 41 next to M/F, count it as YES for Age).
+A4: Gender mentioned (HINT: Often written as M, F, Male, Female. If you see "41/M", count it as YES for Gender).
 A5: Weight documented (default YES if adult and not required; NO if pediatric/chemo and missing)
 A6: Date and time of prescription (BOTH date AND time required for YES)
 
@@ -60,9 +60,9 @@ E6: Dose appropriate for age/renal/hepatic status (assume YES unless obviously w
 E7: Monitoring instructions documented
 
 Section F: Documentation Quality
-F1: Diagnosis documented
+F1: Diagnosis documented (HINT: Look for handwritten text next to "Diagnosis:" e.g. "Acral vitiligo")
 F2: Relevant investigation findings available
-F3: Follow-up advice documented
+F3: Follow-up advice documented (HINT: Look closely at the bottom for "F/W", "next visit", "review on", or dates).
 F4: Patient instructions documented (e.g. take after food)
 
 Also extract the patient name as a raw string for display on the UI.
