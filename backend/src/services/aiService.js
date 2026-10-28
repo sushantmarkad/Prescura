@@ -4,6 +4,7 @@ const OpenAI = require('openai');
 const openai = new OpenAI({
   baseURL: "https://integrate.api.nvidia.com/v1",
   apiKey: process.env.AI_API_KEY || 'mock-key',
+  timeout: 60000, // 60s timeout to prevent hanging forever
 });
 
 // NOTE: Keep this prompt 100% ASCII. Unicode emoji (e.g. warning signs, dashes)
@@ -11,9 +12,12 @@ const openai = new OpenAI({
 const BASE_PROMPT = `You are an expert Clinical Pharmacologist and Quality Manager performing a strict NABH (6th Edition) Prescription Audit.
 Your task is to analyze the provided prescription image and evaluate it against all 34 NABH parameters.
 
-For EVERY parameter (A1 to F4), you MUST output "YES" or "NO".
-If a parameter is completely missing, unreadable, or not applicable but required, output "NO".
-For each parameter, provide a brief 1-sentence evidence string explaining your reasoning (e.g. "Detected Dr. Smith" or "No diagnosis written").
+CRITICAL INSTRUCTIONS:
+1. Return EXACTLY ONE object inside a JSON array: [{ "patientName": "...", "audit": { ... } }]. Do NOT output multiple objects.
+2. For EVERY parameter (A1 to F4), output "YES" or "NO".
+3. For each parameter, provide an extremely short evidence string of 2 to 6 words (e.g. "Doctor name visible" or "No diagnosis written"). Keep it strictly under 6 words.
+4. Do NOT use double quotes or brackets inside evidence strings.
+5. Return ONLY the raw JSON array. Start with [ and end with ]. No markdown backticks, no notes, no extra text.
 
 Section A: Patient Identification
 A1: UHID/IPD/OPD Number mentioned
@@ -183,12 +187,26 @@ async function extractPrescriptionData(imageUrl, privacyMasked = false) {
   }
 
   try {
-    let mimeType = 'image/jpeg';
-    if (imageUrl.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
-    else if (imageUrl.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+    let fetchUrl = imageUrl;
+    // Optimize Cloudinary image delivery: limit dimensions to max 1200px width and auto compress to JPEG for fast vision inference
+    if (fetchUrl.includes('cloudinary.com') && fetchUrl.includes('/upload/')) {
+      if (fetchUrl.toLowerCase().endsWith('.pdf')) {
+        fetchUrl = fetchUrl.replace('/upload/', '/upload/w_1200,c_limit,q_auto/').replace(/\.pdf$/i, '.jpg');
+      } else {
+        fetchUrl = fetchUrl.replace('/upload/', '/upload/w_1200,c_limit,q_auto/');
+      }
+    }
 
-    const response = await fetch(imageUrl);
+    const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+
+    let mimeType = 'image/jpeg';
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.startsWith('image/')) {
+      mimeType = contentType.split(';')[0].trim();
+    } else if (fetchUrl.toLowerCase().endsWith('.png')) {
+      mimeType = 'image/png';
+    }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -201,8 +219,11 @@ async function extractPrescriptionData(imageUrl, privacyMasked = false) {
 
     console.log(`[AI] Processing prescription. privacyMasked=${privacyMasked}, imageSize=${buffer.length} bytes`);
 
+    const modelName = process.env.AI_MODEL || "meta/llama-3.2-11b-vision-instruct";
+    console.log(`[AI] Calling model: ${modelName}`);
+
     const completion = await openai.chat.completions.create({
-      model: "meta/llama-3.2-90b-vision-instruct",
+      model: modelName,
       messages: [
         {
           role: "user",
@@ -219,30 +240,61 @@ async function extractPrescriptionData(imageUrl, privacyMasked = false) {
     let text = completion.choices[0]?.message?.content || '';
     console.log('[AI] Raw response length:', text.length, 'chars');
 
-    // Strip any markdown code fences the model might add
-    text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-    const startIndex = text.indexOf('[');
-    const endIndex = text.lastIndexOf(']');
-
-    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-      const jsonText = text.substring(startIndex, endIndex + 1);
-      try {
-        const parsed = JSON.parse(jsonText);
-        console.log(`[AI] Parsed ${parsed.length} prescription(s) successfully`);
-        return parsed;
-      } catch (parseError) {
-        console.warn('[AI] JSON parse failed. Raw output:', jsonText.substring(0, 500));
-        return [];
-      }
-    } else {
-      console.warn('[AI] No JSON array found in response. Output:', text.substring(0, 500));
-      return [];
-    }
+    const parsedArray = safeParseAuditArray(text);
+    console.log(`[AI] Parsed ${parsedArray.length} prescription(s) successfully`);
+    return parsedArray;
   } catch (error) {
     console.error('[AI] Extraction Error:', error.message);
     throw error;
   }
+}
+
+function safeParseAuditArray(rawText) {
+  if (!rawText) return [];
+
+  // 1. Strip markdown fences and whitespace
+  let clean = rawText.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+
+  // Helper to repair common LLM JSON defects (trailing commas, control chars)
+  const tryParse = (str) => {
+    try {
+      return JSON.parse(str);
+    } catch (_) {
+      try {
+        const fixed = str
+          .replace(/,\s*([}\]])/g, '$1')
+          .replace(/[\u0000-\u001F]+/g, ' ');
+        return JSON.parse(fixed);
+      } catch (e) {
+        return null;
+      }
+    }
+  };
+
+  // Try direct parse first
+  let result = tryParse(clean);
+  if (result) return Array.isArray(result) ? result : [result];
+
+  // 2. Extract JSON array [ ... ]
+  const firstBracket = clean.indexOf('[');
+  const lastBracket = clean.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    const candidate = clean.substring(firstBracket, lastBracket + 1);
+    result = tryParse(candidate);
+    if (result) return Array.isArray(result) ? result : [result];
+  }
+
+  // 3. Fallback: extract single JSON object { ... }
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const candidate = clean.substring(firstBrace, lastBrace + 1);
+    result = tryParse(candidate);
+    if (result) return Array.isArray(result) ? result : [result];
+  }
+
+  console.warn('[AI] All JSON parse attempts failed. Snippet:', clean.substring(0, 300));
+  return [];
 }
 
 module.exports = { extractPrescriptionData };

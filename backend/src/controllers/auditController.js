@@ -1,15 +1,19 @@
 const { saveFinalAudit, getDashboardStats, deleteAudit, getCached, setCache, clearCache } = require('../services/dbService');
 const { db } = require('../config/firebase');
 const { generateExcelReport } = require('../services/excelService');
+const { calculatePrescriptionScore, calculateNABHMetrics } = require('../services/auditEngine');
 
 async function finalizeAudit(req, res) {
   try {
     const auditData = req.body;
     
-    // In production, get user info from JWT middleware
-    // const userId = req.user.uid;
+    // Calculate Compliance Score (%) and NABH Grade
+    const scoreInfo = calculatePrescriptionScore(auditData.auditResults);
+    auditData.complianceScore = scoreInfo.complianceScore;
+    auditData.grade = scoreInfo.grade;
     
     const result = await saveFinalAudit(auditData);
+
     
     clearCache('stats_');
     clearCache('audits_');
@@ -17,7 +21,9 @@ async function finalizeAudit(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Audit finalized and saved successfully',
-      id: result.id
+      id: result.id,
+      complianceScore: scoreInfo.complianceScore,
+      grade: scoreInfo.grade
     });
   } catch (error) {
     console.error("Finalize Audit Error:", error);
@@ -45,10 +51,46 @@ async function getStats(req, res) {
   }
 }
 
+async function getNABHReportSummary(req, res) {
+  try {
+    const { uid, department = 'Medicine', month, setting = 'OPD' } = req.query;
+
+    if (!db) {
+      // Mock metrics for demo / local without db
+      const mockMetrics = calculateNABHMetrics([], { department, month, setting });
+      return res.status(200).json({ success: true, report: mockMetrics });
+    }
+
+    let query = db.collection('prescriptions');
+    if (uid) {
+      query = query.where('finalizedBy', '==', uid);
+    }
+
+    const snapshot = await query.get();
+    const audits = [];
+    snapshot.forEach(doc => {
+      audits.push({ id: doc.id, ...doc.data() });
+    });
+
+    const report = calculateNABHMetrics(audits, { department, month, setting });
+    return res.status(200).json({ success: true, report });
+  } catch (error) {
+    console.error("NABH Report Error:", error);
+    return res.status(500).json({ error: 'Failed to calculate NABH report metrics.' });
+  }
+}
+
 async function exportAudits(req, res) {
   try {
-    const { uid, auditId } = req.query; // If provided, filter by user or specific audit
+    const { uid, auditId, department = 'Medicine', month, setting = 'OPD' } = req.query;
     
+    if (!db) {
+      const buffer = await generateExcelReport([], { department, month, setting });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=NABH_Prescription_Audit_Report.xlsx');
+      return res.send(buffer);
+    }
+
     let query = db.collection('prescriptions');
     const audits = [];
 
@@ -68,10 +110,10 @@ async function exportAudits(req, res) {
       });
     }
 
-    const buffer = await generateExcelReport(audits);
+    const buffer = await generateExcelReport(audits, { department, month, setting });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=' + 'audit_export.xlsx');
+    res.setHeader('Content-Disposition', 'attachment; filename=NABH_Prescription_Audit_Report.xlsx');
     
     return res.send(buffer);
   } catch (error) {
@@ -150,6 +192,7 @@ async function deleteAuditHandler(req, res) {
 module.exports = {
   finalizeAudit,
   getStats,
+  getNABHReportSummary,
   exportAudits,
   getUserAudits,
   getAuditById,

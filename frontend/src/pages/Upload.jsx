@@ -145,11 +145,12 @@ function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, total
   };
 
   const handleApply = () => {
-    // Export the masked canvas as a Blob
+    // Export the masked canvas as a compressed JPEG Blob for fast upload and inference
     canvasRef.current.toBlob(blob => {
-      const maskedFile = new File([blob], imageFile.name, { type: 'image/png' });
+      const maskedName = imageFile.name.replace(/\.[^/.]+$/, "") + "-masked.jpg";
+      const maskedFile = new File([blob], maskedName, { type: 'image/jpeg' });
       onMaskingDone(maskedFile, rects.length > 0);
-    }, 'image/png', 0.95);
+    }, 'image/jpeg', 0.85);
   };
 
   return (
@@ -233,13 +234,15 @@ function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, total
    MAIN UPLOAD PAGE
    ═══════════════════════════════════════════ */
 export default function Upload() {
-  // Step: 'select' | 'mask' | 'uploading'
+  // Step: 'select' | 'mask' | 'uploading' | 'completed'
   const [step, setStep] = useState('select');
   const [selectedFiles, setSelectedFiles] = useState([]); // [{file, previewUrl, maskedFile?, masked?}]
   const [maskingIndex, setMaskingIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
   const [error, setError] = useState(null);
+  const [completedAudits, setCompletedAudits] = useState([]);
+  const [lastAuditIdState, setLastAuditIdState] = useState(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -313,72 +316,102 @@ export default function Upload() {
     let successCount = 0;
     let lastAuditId = null;
     let lastErrorDetails = null;
-    let completed = 0;
-
-    setStatusText(`Starting analysis for ${files.length} file(s)…`);
-    setProgress(10);
 
     const results = [];
 
     for (let i = 0; i < files.length; i++) {
       const sf = files[i];
       const fileToUpload = sf.maskedFile || sf.file;
+      const fileNum = i + 1;
+      const total = files.length;
+
+      // Progress ticker during AI call
+      let progressTimer = null;
+
       try {
         // 1. Upload to Cloudinary
+        setStatusText(`Uploading file ${fileNum} of ${total} to secure storage…`);
+        setProgress(15);
+
         const formData = new FormData();
         formData.append('file', fileToUpload);
         formData.append('upload_preset', uploadPreset);
         const uploadResp = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, { method: 'POST', body: formData });
-        if (!uploadResp.ok) throw new Error(`Cloudinary upload failed for ${sf.file.name}`);
+        if (!uploadResp.ok) throw new Error(`Image upload failed for ${sf.file.name}`);
         const uploadData = await uploadResp.json();
 
-        // 2. Send to AI with masking context
+        // 2. Send to AI
+        setStatusText(`Analyzing clinical criteria with AI (~20-30s)…`);
+        setProgress(30);
+
+        // Smoothly advance progress while AI evaluates
+        progressTimer = setInterval(() => {
+          setProgress(prev => (prev < 88 ? prev + 2 : prev));
+        }, 800);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+
         const res = await fetch(`${apiUrl}/api/process`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             imageUrl: uploadData.secure_url,
             userId: currentUser?.uid,
-            privacyMasked: sf.masked,       // Tell AI if image was masked
+            privacyMasked: sf.masked,
             maskedRegions: sf.masked ? true : false,
           }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+        clearInterval(progressTimer);
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.details || errData.error || `Server responded with ${res.status}`);
+        }
+
         const data = await res.json();
-        
+        setProgress(92);
+        setStatusText(`Compiling NABH compliance score…`);
         results.push({ status: 'fulfilled', value: data, sf });
       } catch (err) {
-        results.push({ status: 'rejected', reason: err, sf });
+        if (progressTimer) clearInterval(progressTimer);
+        const errMsg = err.name === 'AbortError' ? 'Analysis timed out. Please try again.' : err.message;
+        results.push({ status: 'rejected', reason: { message: errMsg }, sf });
       }
-
-      completed++;
-      setProgress(10 + Math.round((completed / files.length) * 85));
-      setStatusText(`Analyzed ${completed} of ${files.length} file(s)…`);
     }
-    setProgress(95);
+    setProgress(98);
+
+    const processedAudits = [];
 
     results.forEach(r => {
       if (r.status === 'fulfilled' && r.value.success) {
         successCount++;
         const d = r.value;
-        if (d.audits?.length > 0) lastAuditId = d.audits[0].auditId;
-        else if (d.auditId) lastAuditId = d.auditId;
+        if (d.audits?.length > 0) {
+          d.audits.forEach(a => processedAudits.push(a));
+          lastAuditId = d.audits[0].auditId;
+        } else if (d.auditId) {
+          processedAudits.push({ id: d.auditId, auditId: d.auditId, auditResults: d.auditResults, extractedData: d.extractedData });
+          lastAuditId = d.auditId;
+        }
       } else {
         lastErrorDetails = r.reason?.message || r.value?.error || 'Unknown error';
       }
     });
 
     if (successCount === 0) {
-      setError(`Failed to process. ${lastErrorDetails || 'Check the backend.'}`);
+      setError(`Failed to process: ${lastErrorDetails || 'Please check backend logs.'}`);
       setStep('select');
       return;
     }
 
     setProgress(100);
-    setStatusText(`${successCount} prescription(s) processed!`);
-    setTimeout(() => {
-      if (files.length === 1 && lastAuditId) navigate(`/audit-review/${lastAuditId}`);
-      else navigate('/dashboard');
-    }, 800);
+    setStatusText(`${successCount} prescription(s) processed successfully!`);
+    setCompletedAudits(processedAudits);
+    setLastAuditIdState(lastAuditId);
+    setStep('completed');
   };
 
   /* ── Render ── */
@@ -455,8 +488,9 @@ export default function Upload() {
           { label: 'Select Files', key: 'select' },
           { label: 'Privacy Masking', key: 'mask' },
           { label: 'AI Analysis', key: 'uploading' },
+          { label: 'NABH Report', key: 'completed' },
         ].map((s, i, arr) => {
-          const stepOrder = { select: 0, mask: 1, uploading: 2 };
+          const stepOrder = { select: 0, mask: 1, uploading: 2, completed: 3 };
           const cur = stepOrder[step];
           const me = stepOrder[s.key];
           const cls = me < cur ? 'done' : me === cur ? 'active' : '';
@@ -560,16 +594,64 @@ export default function Upload() {
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', border: '3px solid var(--border-color)', borderTopColor: 'var(--primary-color)', animation: 'up-spin 0.8s linear infinite', margin: '0 auto 1.5rem' }} />
             <style>{`@keyframes up-spin { to { transform: rotate(360deg) } }`}</style>
-            <div className="up-progress-wrap">
-              <div className="up-progress-row">
+            <div className="up-progress-wrap" style={{ maxWidth: 440, margin: '0 auto 1.5rem' }}>
+              <div className="up-progress-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.88rem', fontWeight: 600 }}>
                 <span>{statusText}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div className="up-progress-bar">
-                <div className="up-progress-fill" style={{ width: `${progress}%` }} />
+              <div className="up-progress-bar" style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div className="up-progress-fill" style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary-color), #6366f1)', transition: 'width 0.4s ease' }} />
               </div>
             </div>
-            {error && <div className="up-error">{error}</div>}
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 460, margin: '0 auto', lineHeight: 1.5 }}>
+              Auditing all 34 NABH (6th Edition) clinical criteria across Patient ID, Doctor credentials, Dosage completeness, LASA safety, and Rational prescribing indicators.
+            </p>
+            {error && <div className="up-error" style={{ marginTop: '1rem' }}>{error}</div>}
+          </div>
+        )}
+
+        {/* ── STEP: COMPLETED ── */}
+        {step === 'completed' && (
+          <div style={{ textAlign: 'center', padding: '1.5rem 0.5rem' }}>
+            <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'rgba(16,185,129,0.12)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: '2rem' }}>
+              ✓
+            </div>
+            
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.03em' }}>
+              Prescription Audit Complete!
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', maxWidth: '480px', margin: '0 auto 2rem', lineHeight: 1.6 }}>
+              Successfully analyzed <strong>{completedAudits.length} prescription{completedAudits.length > 1 ? 's' : ''}</strong> against all 34 NABH (6th Edition) Medication Management criteria.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: '420px', margin: '0 auto' }}>
+              <button
+                className="up-submit-btn"
+                style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)', boxShadow: '0 4px 18px rgba(5,150,105,0.35)' }}
+                onClick={() => navigate('/final-report', { state: { audits: completedAudits } })}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                View Final NABH Audit Report
+              </button>
+
+              {lastAuditIdState && (
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', fontSize: '0.92rem', fontWeight: 600 }}
+                  onClick={() => navigate(`/audit-review/${lastAuditIdState}`)}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Review Prescriptions Individually
+                </button>
+              )}
+
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, marginTop: '0.5rem' }}
+              >
+                Go to Dashboard
+              </button>
+            </div>
           </div>
         )}
 

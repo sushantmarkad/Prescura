@@ -1,14 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { processPrescription } = require('../controllers/extractController');
-const { finalizeAudit, getStats, exportAudits, getUserAudits, getAuditById, deleteAuditHandler } = require('../controllers/auditController');
+const { finalizeAudit, getStats, getNABHReportSummary, exportAudits, getUserAudits, getAuditById, deleteAuditHandler } = require('../controllers/auditController');
 const { registerUser } = require('../controllers/authController');
 const { getAllUsers, deleteUser, toggleMaintenanceMode, getSystemSettings } = require('../controllers/adminController');
+const { getSymptomsList, predictCondition, handleChatMessage } = require('../controllers/chatbotController');
+
+// Chatbot & Symptom Checker Routes (Dataset-trained)
+router.get('/chatbot/symptoms', getSymptomsList);
+router.post('/chatbot/predict', predictCondition);
+router.post('/chatbot/chat', handleChatMessage);
 
 // Define API routes
 router.post('/process', processPrescription);
 router.post('/audit/finalize', finalizeAudit);
 router.get('/stats', getStats);
+router.get('/report/summary', getNABHReportSummary);
 router.get('/export', exportAudits);
 router.get('/audit/:id', getAuditById);
 router['delete']('/audit/:id', deleteAuditHandler);

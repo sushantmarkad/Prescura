@@ -8,7 +8,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import Upload from './pages/Upload';
 import AuditReview from './pages/AuditReview';
+import FinalAuditReport from './pages/FinalAuditReport';
 import { useAuth } from './context/AuthContext';
+import SymptomChatbot from './components/SymptomChatbot';
 
 const RoleBasedDashboard = () => {
   const { userRole } = useAuth();
@@ -33,10 +35,12 @@ function App() {
             <Route index element={<RoleBasedDashboard />} />
             <Route path="upload" element={<Upload />} />
             <Route path="audit-review/:id" element={<AuditReview />} />
+            <Route path="final-report" element={<FinalAuditReport />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <SymptomChatbot />
       </Router>
     </AuthProvider>
   );

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import html2pdf from 'html2pdf.js';
+import { calculatePrescriptionScore } from '../utils/scoring';
+import { generateIndividualAuditPDF } from '../utils/pdfGenerator';
 
 export default function AuditReview() {
   const { id } = useParams();
@@ -18,6 +19,8 @@ export default function AuditReview() {
   const [showDoneModal, setShowDoneModal] = useState(false);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  const liveScore = useMemo(() => calculatePrescriptionScore(auditResults), [auditResults]);
 
   // Reset state when ID changes (for Next Pending navigation)
   useEffect(() => {
@@ -51,10 +54,10 @@ export default function AuditReview() {
         setLoading(false);
       }
     };
-    
+
     // Fallback if accessed directly or via batch redirect
     if (loading) {
-       fetchAudit();
+      fetchAudit();
     }
   }, [id, extractedData, loading]);
 
@@ -80,7 +83,7 @@ export default function AuditReview() {
     if (!fieldData) return null;
     const isUnclear = fieldData.status === 'UNCLEAR';
     const isNotFound = fieldData.status === 'NOT_FOUND';
-    
+
     return (
       <div style={{ marginBottom: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: 'var(--bg-color)', borderRadius: 'var(--radius-sm)' }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{label}</span>
@@ -118,12 +121,12 @@ export default function AuditReview() {
       <div className="flex-between" style={{ marginBottom: '0.8rem' }}>
         <div style={{ fontWeight: 600 }}>{item.criterionId}. {item.question}</div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button 
+          <button
             className={`btn ${item.finalAnswer === 'YES' ? 'btn-success' : 'btn-secondary'}`}
             style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}
             onClick={() => handleOverride(item.criterionId, 'YES')}
           >YES</button>
-          <button 
+          <button
             className={`btn ${item.finalAnswer === 'NO' ? 'btn-danger' : 'btn-secondary'}`}
             style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}
             onClick={() => handleOverride(item.criterionId, 'NO')}
@@ -145,62 +148,11 @@ export default function AuditReview() {
   );
 
   const handleDownloadPDF = () => {
-    const html = `
-      <style>
-        tr, td, th { page-break-inside: avoid; }
-      </style>
-      <div style="padding: 20px; font-family: sans-serif; color: #333;">
-        <h1 style="color: #0ea5e9; margin-bottom: 10px; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px;">Prescription Audit Report</h1>
-        <p><strong>Audit ID:</strong> ${id}</p>
-        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-        
-        <h3 style="margin-top: 20px; background-color: #f1f5f9; padding: 10px;">Classification Result</h3>
-        <p><strong>Status:</strong> <span style="color: ${classification?.status === 'RATIONAL' ? 'green' : 'red'}; font-weight: bold;">${classification?.status || 'Pending'}</span></p>
-        <p><strong>Reason:</strong> ${classification?.reason || 'N/A'}</p>
-
-        <h3 style="margin-top: 20px; background-color: #f1f5f9; padding: 10px;">Detailed Audit Results</h3>
-        ${['A', 'B', 'C', 'D', 'E', 'F'].map(section => {
-          const sectionItems = Object.values(auditResults).filter(r => r.section === section);
-          if (sectionItems.length === 0) return '';
-          return `
-            <div style="page-break-inside: avoid;">
-              <h4 style="color: #0ea5e9; margin-top: 15px; margin-bottom: 5px;">${sectionItems[0].sectionName}</h4>
-              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; border: 1px solid #000;">
-                <thead>
-                  <tr>
-                    <th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #e2e8f0; width: 35%;">Question</th>
-                    <th style="border: 1px solid #000; padding: 8px; text-align: center; background-color: #e2e8f0; width: 15%;">Answer</th>
-                    <th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #e2e8f0; width: 50%;">Evidence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${sectionItems.map(r => `
-                    <tr>
-                      <td style="border: 1px solid #000; padding: 8px;">${r.criterionId}. ${r.question}</td>
-                      <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; color: ${r.finalAnswer === 'NO' ? '#ef4444' : '#10b981'};">${r.finalAnswer}</td>
-                      <td style="border: 1px solid #000; padding: 8px;">${r.evidence}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-
-    const element = document.createElement('div');
-    element.innerHTML = html;
-
-    const opt = {
-      margin:       10,
-      filename:     `audit_report_${id}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(element).save();
+    try {
+      generateIndividualAuditPDF(id, extractedData, auditResults, classification, liveScore);
+    } catch (err) {
+      console.error('Vector PDF generation error:', err);
+    }
   };
 
   const handleDownloadExcel = () => {
@@ -242,10 +194,10 @@ export default function AuditReview() {
           to { opacity: 1; transform: scale(1); }
         }
       `}</style>
-      
+
       {/* Top Navigation Bar */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
-        <button 
+        <button
           onClick={() => navigate('/dashboard')}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: '600', padding: '0.5rem 0', transition: 'color 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
@@ -258,162 +210,213 @@ export default function AuditReview() {
 
       <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: 'calc(100vh - 240px)' }}>
         {/* LEFT COLUMN: PRESCRIPTION IMAGE */}
-      <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Prescription Image</h3>
-        <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-          {imageUrl ? (
-            <img src={imageUrl.toLowerCase().endsWith('.pdf') ? imageUrl.slice(0, -4) + '.jpg' : imageUrl} alt="Prescription Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-          ) : (
-            <div style={{ color: 'var(--text-secondary)' }}>No image available</div>
-          )}
-        </div>
-      </div>
-
-      {/* RIGHT COLUMN: AUDIT CHECKLIST */}
-      <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ margin: 0 }}>Audit Checklist</h3>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span className="badge badge-pending">Review Pending</span>
-            <button 
-              className="btn btn-secondary print-hide" 
-              style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
-              onClick={handleDownloadExcel}
-              disabled={!classification} // Only enable if saved
-            >
-              📊 Excel Report
-            </button>
-            <button 
-              className="btn btn-secondary print-hide" 
-              style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
-              onClick={handleDownloadPDF}
-              disabled={!classification} // Only enable if saved
-            >
-              📄 PDF Report
-            </button>
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <h3 style={{ marginBottom: '1rem' }}>Prescription Image</h3>
+          <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+            {imageUrl ? (
+              <img src={imageUrl.toLowerCase().endsWith('.pdf') ? imageUrl.slice(0, -4) + '.jpg' : imageUrl} alt="Prescription Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            ) : (
+              <div style={{ color: 'var(--text-secondary)' }}>No image available</div>
+            )}
           </div>
         </div>
-        
-        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
-          
-          {/* Dynamically map through all NABH sections */}
-          {['A', 'B', 'C', 'D', 'E', 'F'].map(section => {
-            const sectionItems = Object.values(auditResults).filter(r => r.section === section);
-            if (sectionItems.length === 0) return null;
-            return (
-              <React.Fragment key={section}>
-                <h4 style={{ color: 'var(--primary-color)', marginTop: section === 'A' ? '1rem' : '2rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  {sectionItems[0].sectionName}
-                </h4>
-                {sectionItems.map(renderCriterion)}
-              </React.Fragment>
-            );
-          })}
-          
-        </div>
 
-        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
-          {!classification ? (
-            <>
-              <button className="btn btn-secondary" style={{ flex: 1 }}>Save Draft</button>
-              <button 
-                className="btn btn-primary" 
-                style={{ flex: 2 }}
-                disabled={finalizing}
-                onClick={async () => {
-                  setFinalizing(true);
-                  
-                  const resultsArray = Object.values(auditResults);
-                  
-                  // NABH Critical Parameters that automatically trigger IRRATIONAL if NO
-                  const criticalCriteria = ['B3', 'C4', 'C5', 'C6', 'D1', 'D3', 'E2'];
-                  let classStat = 'RATIONAL';
-                  let classReas = 'Meets all critical NABH safety and rationality criteria.';
-
-                  for (const crit of criticalCriteria) {
-                    if (auditResults[crit]?.finalAnswer === 'NO') {
-                      classStat = 'IRRATIONAL';
-                      classReas = `Failed critical safety criteria (Section ${crit}): ${auditResults[crit].question}`;
-                      break;
-                    }
-                  }
-                  
-                  setClassification({
-                    status: classStat,
-                    reason: classReas
-                  });
-
-                  // POST TO BACKEND to save
-                  try {
-                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                    const res = await fetch(`${apiUrl}/api/audit/finalize`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        auditId: id,
-                        prescriptionData: { imageUrl, patientName: extractedData?.patientName || 'Unknown' },
-                        auditResults,
-                        classification: classStat,
-                        classificationReason: classReas,
-                        userId: currentUser?.uid || 'unknown'
-                      })
-                    });
-                    
-                    if (res.ok) {
-                      setSaveSuccess(true);
-                      setTimeout(() => setSaveSuccess(false), 3000);
-                    }
-                  } catch (e) {
-                    console.error("Failed to save audit:", e);
-                  }
-                  
-                  setFinalizing(false);
-                }}
+        {/* RIGHT COLUMN: AUDIT CHECKLIST */}
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h3 style={{ margin: 0 }}>Audit Checklist</h3>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-secondary print-hide"
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', color: 'var(--primary-color)' }}
+                onClick={() => navigate('/final-report')}
+                title="View Hospital-wide NABH Audit Report"
               >
-                {finalizing ? 'Saving...' : 'Finalize Audit & Classify'}
+                📑 Final Report
               </button>
-            </>
-          ) : (
-            <div className="animate-fade-in" style={{ width: '100%', textAlign: 'center', padding: '1.5rem', borderRadius: '16px', backgroundColor: classification.status === 'RATIONAL' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', border: classification.status === 'RATIONAL' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', transition: 'all 0.3s ease' }}>
-              {saveSuccess && (
-                <div style={{ marginBottom: '1.5rem', padding: '0.85rem 1.2rem', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', fontWeight: '500', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', animation: 'slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                  <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', padding: '4px', borderRadius: '50%', display: 'flex' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  </div>
-                  Audit saved successfully! You can view it in your Dashboard.
-                </div>
-              )}
-              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
-                {classification.status === 'RATIONAL' ? (
-                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--success-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                   </div>
-                ) : (
-                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                   </div>
-                )}
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.02em', color: classification.status === 'RATIONAL' ? 'var(--success-color)' : 'var(--danger-color)' }}>
-                FINAL CLASSIFICATION: {classification.status}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.75rem', lineHeight: '1.5', maxWidth: '90%', margin: '0.75rem auto 0' }}>
-                Reason: {classification.reason}
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
-                <button className="btn btn-secondary" style={{ padding: '0.6rem 1.2rem', borderRadius: '999px', fontSize: '0.85rem' }} onClick={() => setClassification(null)}>
-                  Edit Audit
-                </button>
-                <button className="btn btn-primary" style={{ padding: '0.6rem 1.2rem', borderRadius: '999px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={handleNextPending} disabled={navigatingNext}>
-                  {navigatingNext ? 'Loading...' : 'Next Pending Prescription'}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                </button>
-              </div>
+              <button
+                className="btn btn-secondary print-hide"
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+                onClick={handleDownloadExcel}
+                disabled={!classification} // Only enable if saved
+              >
+                📊 Excel Report
+              </button>
+              <button
+                className="btn btn-secondary print-hide"
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+                onClick={handleDownloadPDF}
+                disabled={!classification} // Only enable if saved
+              >
+                📄 PDF Report
+              </button>
             </div>
-          )}
+          </div>
+
+          {/* Real-time NABH Compliance & Grading Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.6rem 0.9rem',
+            background: liveScore.gradeBg,
+            borderRadius: '10px',
+            border: `1.5px solid ${liveScore.gradeColor}40`,
+            marginBottom: '0.75rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Compliance:</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 900, color: liveScore.gradeColor, letterSpacing: '-0.02em' }}>{liveScore.complianceScore}%</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>({liveScore.yesCount}/{liveScore.totalApplicable} Yes)</span>
+            </div>
+            <span
+              className="badge"
+              style={{
+                backgroundColor: 'var(--surface-color)',
+                color: liveScore.gradeColor,
+                border: `1px solid ${liveScore.gradeColor}`,
+                fontWeight: 800,
+                fontSize: '0.72rem'
+              }}
+            >
+              NABH: {liveScore.grade}
+            </span>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+
+            {/* Dynamically map through all NABH sections */}
+            {['A', 'B', 'C', 'D', 'E', 'F'].map(section => {
+              const sectionItems = Object.values(auditResults).filter(r => r.section === section);
+              if (sectionItems.length === 0) return null;
+              return (
+                <React.Fragment key={section}>
+                  <h4 style={{ color: 'var(--primary-color)', marginTop: section === 'A' ? '1rem' : '2rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                    {sectionItems[0].sectionName}
+                  </h4>
+                  {sectionItems.map(renderCriterion)}
+                </React.Fragment>
+              );
+            })}
+
+          </div>
+
+          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
+            {!classification ? (
+              <>
+                <button className="btn btn-secondary" style={{ flex: 1 }}>Save Draft</button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 2 }}
+                  disabled={finalizing}
+                  onClick={async () => {
+                    setFinalizing(true);
+
+                    const resultsArray = Object.values(auditResults);
+
+                    // NABH Critical Parameters that automatically trigger IRRATIONAL if NO
+                    const criticalCriteria = ['B3', 'C4', 'C5', 'C6', 'D1', 'D3', 'E2'];
+                    let classStat = 'RATIONAL';
+                    let classReas = 'Meets all critical NABH safety and rationality criteria.';
+
+                    for (const crit of criticalCriteria) {
+                      if (auditResults[crit]?.finalAnswer === 'NO') {
+                        classStat = 'IRRATIONAL';
+                        classReas = `Failed critical safety criteria (Section ${crit}): ${auditResults[crit].question}`;
+                        break;
+                      }
+                    }
+
+                    setClassification({
+                      status: classStat,
+                      reason: classReas
+                    });
+
+                    // POST TO BACKEND to save
+                    try {
+                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                      const res = await fetch(`${apiUrl}/api/audit/finalize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          auditId: id,
+                          prescriptionData: { imageUrl, patientName: extractedData?.patientName || 'Unknown' },
+                          auditResults,
+                          complianceScore: liveScore.complianceScore,
+                          grade: liveScore.grade,
+                          classification: classStat,
+                          classificationReason: classReas,
+                          userId: currentUser?.uid || 'unknown'
+                        })
+                      });
+
+                      if (res.ok) {
+                        setSaveSuccess(true);
+                        setTimeout(() => setSaveSuccess(false), 3000);
+                      }
+                    } catch (e) {
+                      console.error("Failed to save audit:", e);
+                    }
+
+                    setFinalizing(false);
+                  }}
+                >
+                  {finalizing ? 'Saving...' : 'Finalize Audit & Classify'}
+                </button>
+              </>
+            ) : (
+              <div className="animate-fade-in" style={{ width: '100%', textAlign: 'center', padding: '1.5rem', borderRadius: '16px', backgroundColor: classification.status === 'RATIONAL' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', border: classification.status === 'RATIONAL' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)', transition: 'all 0.3s ease' }}>
+                {saveSuccess && (
+                  <div style={{ marginBottom: '1.5rem', padding: '0.85rem 1.2rem', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', fontWeight: '500', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', animation: 'slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                    <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', padding: '4px', borderRadius: '50%', display: 'flex' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    Audit saved successfully! You can view it in your Dashboard or Final Report.
+                  </div>
+                )}
+                <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                  {classification.status === 'RATIONAL' ? (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--success-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.02em', color: classification.status === 'RATIONAL' ? 'var(--success-color)' : 'var(--danger-color)' }}>
+                  FINAL CLASSIFICATION: {classification.status}
+                </div>
+                <div style={{ marginTop: '0.4rem', fontSize: '0.95rem', fontWeight: 700, color: liveScore.gradeColor }}>
+                  Compliance: {liveScore.complianceScore}% · NABH Grade: {liveScore.grade}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: '1.5', maxWidth: '90%', margin: '0.5rem auto 0' }}>
+                  Reason: {classification.reason}
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.82rem' }} onClick={() => setClassification(null)}>
+                    Edit Audit
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.82rem', borderColor: 'var(--primary-color)', color: 'var(--primary-color)' }}
+                    onClick={() => navigate('/final-report')}
+                  >
+                    📑 Final NABH Report
+                  </button>
+                  <button className="btn btn-primary" style={{ padding: '0.5rem 1.1rem', borderRadius: '999px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={handleNextPending} disabled={navigatingNext}>
+                    {navigatingNext ? 'Loading...' : 'Next Pending'}
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Done Modal overlay */}
       {showDoneModal && (
@@ -426,8 +429,8 @@ export default function AuditReview() {
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
               Great job! You have no more pending prescriptions to review in your queue.
             </p>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               style={{ width: '100%', padding: '0.8rem', fontSize: '1rem', borderRadius: '12px' }}
               onClick={() => {
                 setShowDoneModal(false);

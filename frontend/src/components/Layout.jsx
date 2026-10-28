@@ -81,6 +81,7 @@ export default function Layout() {
                 <nav style={{ display: 'flex', gap: '1.25rem', fontWeight: 500, fontSize: '0.95rem' }}>
                   <Link to="/" style={{ color: isActive('/') }}>Dashboard</Link>
                   <Link to="/upload" style={{ color: isActive('/upload') }}>Audit New</Link>
+                  <Link to="/final-report" style={{ color: isActive('/final-report') }}>Final Report</Link>
                 </nav>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
                   <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }} title="Toggle Theme">
@@ -119,6 +120,9 @@ export default function Layout() {
             </Link>
             <Link to="/upload" style={{ padding: '0.9rem 1.5rem', color: 'var(--text-primary)', fontWeight: 500, borderBottom: '1px solid var(--border-color)' }}>
               ＋ Audit New
+            </Link>
+            <Link to="/final-report" style={{ padding: '0.9rem 1.5rem', color: 'var(--text-primary)', fontWeight: 500, borderBottom: '1px solid var(--border-color)' }}>
+              📑 Final NABH Report
             </Link>
             <div style={{ display: 'flex', gap: '1rem', padding: '0.9rem 1.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{currentUser.email}</span>

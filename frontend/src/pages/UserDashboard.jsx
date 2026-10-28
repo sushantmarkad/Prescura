@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { calculatePrescriptionScore } from '../utils/scoring';
 // import { db } from '../config/firebase'; // Removed as we route via backend now
 // import { doc, deleteDoc } from 'firebase/firestore'; // Removed
 
@@ -334,9 +335,18 @@ export default function UserDashboard() {
           <h1 className="ud-title">My Dashboard</h1>
           <p className="ud-subtitle">Logged in as <strong>{currentUser?.email}</strong></p>
         </div>
-        <button className="ud-export-btn" onClick={handleExport}>
-          {Icons.download} Export Data
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button 
+            className="ud-export-btn" 
+            style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)', boxShadow: '0 4px 14px rgba(5,150,105,0.35)' }}
+            onClick={() => navigate('/final-report')}
+          >
+            📑 Final NABH Report
+          </button>
+          <button className="ud-export-btn" onClick={handleExport}>
+            {Icons.download} Export Data
+          </button>
+        </div>
       </div>
 
       {/* ── Stats ── */}
@@ -398,6 +408,7 @@ export default function UserDashboard() {
                   <th className="ud-th">Date &amp; Time</th>
                   <th className="ud-th ud-th--dept">Department</th>
                   <th className="ud-th">Classification</th>
+                  <th className="ud-th">NABH Score &amp; Grade</th>
                   <th className="ud-th ud-th--center" style={{ width: 80 }}>Action</th>
                 </tr>
               </thead>
@@ -405,6 +416,7 @@ export default function UserDashboard() {
                 {filteredAudits.map((audit, idx) => {
                   const cls = audit.finalClassification || audit.classification || 'PENDING';
                   const { date, time } = formatDateTime(audit.createdAt);
+                  const scoreInfo = calculatePrescriptionScore(audit.auditResults);
                   return (
                     <tr
                       key={audit.id}
@@ -433,6 +445,25 @@ export default function UserDashboard() {
                           <span className="ud-badge-dot" />
                           {cls}
                         </span>
+                      </td>
+                      <td className="ud-td">
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: scoreInfo.gradeColor }}>
+                            {scoreInfo.complianceScore}%
+                          </span>
+                          <span 
+                            style={{ 
+                              backgroundColor: scoreInfo.gradeBg, 
+                              color: scoreInfo.gradeColor, 
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '0.15rem 0.5rem', 
+                              borderRadius: '6px' 
+                            }}
+                          >
+                            {scoreInfo.grade}
+                          </span>
+                        </div>
                       </td>
                       <td className="ud-td" style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>

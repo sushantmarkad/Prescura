@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard() {
   const { currentUser, userRole } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ totalAudited: 0, rational: 0, irrational: 0, pending: 0 });
   const [users, setUsers] = useState([]);
   const [maintenance, setMaintenance] = useState(false);
@@ -77,14 +79,21 @@ export default function AdminDashboard() {
             System overview. Role: <span className="badge badge-pending">{userRole}</span>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button 
+            className="btn btn-primary" 
+            style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)' }}
+            onClick={() => navigate('/final-report')}
+          >
+            <span>📑</span> Final NABH Report
+          </button>
           <button 
             className={`btn ${maintenance ? 'btn-danger' : 'btn-secondary'}`} 
             onClick={toggleMaintenance}
           >
             {maintenance ? '🔴 Maintenance Mode ON' : '⚙️ Enable Maintenance'}
           </button>
-          <button className="btn btn-primary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>📊</span> Export Hospital Data
           </button>
         </div>

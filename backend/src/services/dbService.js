@@ -85,6 +85,8 @@ async function saveFinalAudit(auditData) {
         status: 'FINALIZED',
         ...prescriptionData,
         auditResults,
+        complianceScore: auditData.complianceScore ?? null,
+        grade: auditData.grade ?? null,
         finalClassification: classification,
         classificationReason,
         finalizedBy: userId,
