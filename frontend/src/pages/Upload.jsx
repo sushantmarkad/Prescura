@@ -305,7 +305,7 @@ export default function Upload() {
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
 
     if (!cloudName || !uploadPreset) {
       setError('Cloudinary configuration missing in .env');

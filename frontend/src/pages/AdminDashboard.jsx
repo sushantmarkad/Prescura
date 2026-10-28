@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
         
         // Fetch stats
         const statsRes = await fetch(`${apiUrl}/api/stats`);
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
 
   const toggleMaintenance = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
       const res = await fetch(`${apiUrl}/api/admin/maintenance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
   const deleteUser = async (uid) => {
     if (!window.confirm("Are you sure? This will anonymize their data and delete their account.")) return;
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
       const res = await fetch(`${apiUrl}/api/admin/users/${uid}`, { method: 'DELETE' });
       if (res.ok) setUsers(users.filter(u => u.uid !== uid));
     } catch (e) {
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   };
 
   const handleExport = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
     window.open(`${apiUrl}/api/export`);
   };
 

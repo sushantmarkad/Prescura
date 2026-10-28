@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
     
     // Call backend to securely register user and assign role
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
       const token = await user.getIdToken();
       await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',

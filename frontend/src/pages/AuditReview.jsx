@@ -35,7 +35,7 @@ export default function AuditReview() {
   useEffect(() => {
     const fetchAudit = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
         const res = await fetch(`${apiUrl}/api/audit/${id}`);
         const data = await res.json();
         if (data.success && data.audit) {
@@ -156,14 +156,14 @@ export default function AuditReview() {
   };
 
   const handleDownloadExcel = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
     window.location.href = `${apiUrl}/api/export?auditId=${id}`;
   };
 
   const handleNextPending = async () => {
     setNavigatingNext(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
       const res = await fetch(`${apiUrl}/api/user/audits/${currentUser?.uid}`);
       const data = await res.json();
       if (data.success && data.audits) {
@@ -336,7 +336,7 @@ export default function AuditReview() {
 
                     // POST TO BACKEND to save
                     try {
-                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                      const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
                       const res = await fetch(`${apiUrl}/api/audit/finalize`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

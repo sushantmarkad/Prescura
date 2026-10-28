@@ -148,7 +148,7 @@ export default function UserDashboard() {
   useEffect(() => {
     const fetchMyAudits = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
         const res = await fetch(`${apiUrl}/api/user/audits/${currentUser.uid}`);
         const data = await res.json();
         if (data.success) setAudits(data.audits);
@@ -162,7 +162,7 @@ export default function UserDashboard() {
   }, [currentUser]);
 
   const handleExport = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
     window.open(`${apiUrl}/api/export?uid=${currentUser.uid}`);
   };
 
@@ -172,7 +172,7 @@ export default function UserDashboard() {
     if (!deleteAuditId) return;
     setIsDeleting(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
       const res = await fetch(`${apiUrl}/api/audit/${deleteAuditId}`, {
         method: 'DELETE',
       });

@@ -61,7 +61,7 @@ export default function SymptomChatbot() {
   const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
 
   // Fetch symptom reference data on mount
   useEffect(() => {

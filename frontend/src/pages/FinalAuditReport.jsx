@@ -56,7 +56,7 @@ export default function FinalAuditReport() {
     const fetchAudits = async () => {
       try {
         setLoading(true);
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
         const res = await fetch(`${apiUrl}/api/user/audits/${currentUser?.uid}`);
         const data = await res.json();
         if (data.success && data.audits) {
@@ -96,7 +96,7 @@ export default function FinalAuditReport() {
   };
 
   const handleExportExcel = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://prescura-smif.onrender.com';
     const params = new URLSearchParams({
       uid: currentUser?.uid || '',
       department: selectedDept,
