@@ -40,9 +40,9 @@ export default function Layout() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <header className="glass-panel" style={{ 
-        padding: '0.85rem max(1.5rem, env(safe-area-inset-right)) 0.85rem max(1.5rem, env(safe-area-inset-left))',
-        marginBottom: '2rem', 
+      <header className="glass-panel app-header" style={{ 
+        padding: '0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left))',
+        marginBottom: '1.25rem', 
         borderRadius: '0', 
         borderTop: 'none', 
         borderLeft: 'none', 
@@ -50,11 +50,11 @@ export default function Layout() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        paddingTop: `max(0.85rem, env(safe-area-inset-top))`
+        paddingTop: `max(0.75rem, env(safe-area-inset-top))`
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
             <div style={{ 
               backgroundColor: 'var(--primary-color)', 
               color: 'white', 
@@ -69,68 +69,154 @@ export default function Layout() {
               flexShrink: 0
             }}>+</div>
             <div>
-              <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.2rem', letterSpacing: '-0.02em' }}>Prescura</h2>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>AI Audit System</span>
+              <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.15rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>Prescura</h2>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>AI Audit System</span>
             </div>
-          </div>
+          </Link>
           
           {currentUser && (
             <>
               {/* Desktop Nav */}
-              <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                 <nav style={{ display: 'flex', gap: '1.25rem', fontWeight: 500, fontSize: '0.95rem' }}>
                   <Link to="/" style={{ color: isActive('/') }}>Dashboard</Link>
                   <Link to="/upload" style={{ color: isActive('/upload') }}>Audit New</Link>
                   <Link to="/final-report" style={{ color: isActive('/final-report') }}>Final Report</Link>
                 </nav>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
-                  <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }} title="Toggle Theme">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
+                  <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0.2rem' }} title="Toggle Theme">
                     {theme === 'light' ? '🌙' : '☀️'}
                   </button>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{currentUser.email.split('@')[0]}</div>
-                    <div className="badge badge-pending" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>{userRole}</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{currentUser.email.split('@')[0]}</div>
+                    <div className="badge badge-pending" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem' }}>{userRole}</div>
                   </div>
-                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>Logout</button>
+                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }}>Logout</button>
                 </div>
               </div>
 
               {/* Mobile Nav Toggle */}
-              <button
-                className="mobile-menu-btn"
-                onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: 'var(--text-primary)', display: 'none' }}
-                aria-label="Toggle menu"
-              >
-                {menuOpen ? '✕' : '☰'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  className="mobile-theme-btn"
+                  onClick={toggleTheme}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.4rem', display: 'none' }}
+                  aria-label="Toggle Theme"
+                >
+                  {theme === 'light' ? '🌙' : '☀️'}
+                </button>
+                <button
+                  className="mobile-menu-btn"
+                  onClick={() => setMenuOpen(o => !o)}
+                  style={{ 
+                    background: 'none', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer', 
+                    fontSize: '1.3rem', 
+                    color: 'var(--text-primary)', 
+                    display: 'none',
+                    width: '40px',
+                    height: '40px',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                  aria-label="Toggle menu"
+                >
+                  {menuOpen ? '✕' : '☰'}
+                </button>
+              </div>
             </>
           )}
         </div>
 
         {/* Mobile Menu Drawer */}
         {currentUser && menuOpen && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: '0', 
-            borderTop: '1px solid var(--border-color)', marginTop: '0.85rem',
+          <div className="mobile-menu-drawer animate-fade-in" style={{
+            display: 'flex', flexDirection: 'column',
+            borderTop: '1px solid var(--border-color)', marginTop: '0.75rem',
+            paddingTop: '0.5rem',
             paddingBottom: 'env(safe-area-inset-bottom, 0)'
           }}>
-            <Link to="/" style={{ padding: '0.9rem 1.5rem', color: 'var(--text-primary)', fontWeight: 500, borderBottom: '1px solid var(--border-color)' }}>
-              📊 Dashboard
+            <Link 
+              to="/" 
+              style={{ 
+                padding: '0.85rem 1rem', 
+                color: location.pathname === '/' ? 'var(--primary-color)' : 'var(--text-primary)', 
+                fontWeight: 600, 
+                borderRadius: '8px',
+                background: location.pathname === '/' ? 'var(--primary-light)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                margin: '0.2rem 0'
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>📊</span> Dashboard
             </Link>
-            <Link to="/upload" style={{ padding: '0.9rem 1.5rem', color: 'var(--text-primary)', fontWeight: 500, borderBottom: '1px solid var(--border-color)' }}>
-              ＋ Audit New
+            <Link 
+              to="/upload" 
+              style={{ 
+                padding: '0.85rem 1rem', 
+                color: location.pathname === '/upload' ? 'var(--primary-color)' : 'var(--text-primary)', 
+                fontWeight: 600, 
+                borderRadius: '8px',
+                background: location.pathname === '/upload' ? 'var(--primary-light)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                margin: '0.2rem 0'
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>＋</span> Audit New
             </Link>
-            <Link to="/final-report" style={{ padding: '0.9rem 1.5rem', color: 'var(--text-primary)', fontWeight: 500, borderBottom: '1px solid var(--border-color)' }}>
-              📑 Final NABH Report
+            <Link 
+              to="/final-report" 
+              style={{ 
+                padding: '0.85rem 1rem', 
+                color: location.pathname === '/final-report' ? 'var(--primary-color)' : 'var(--text-primary)', 
+                fontWeight: 600, 
+                borderRadius: '8px',
+                background: location.pathname === '/final-report' ? 'var(--primary-light)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                margin: '0.2rem 0'
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>📑</span> Final NABH Report
             </Link>
-            <div style={{ display: 'flex', gap: '1rem', padding: '0.9rem 1.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{currentUser.email}</span>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>
-                  {theme === 'light' ? '🌙' : '☀️'}
-                </button>
-                <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>Logout</button>
+
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              gap: '0.75rem', 
+              padding: '0.85rem 1rem', 
+              borderTop: '1px solid var(--border-color)',
+              marginTop: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{currentUser.email}</div>
+                  <div className="badge badge-pending" style={{ fontSize: '0.62rem', padding: '0.1rem 0.4rem', marginTop: '0.2rem' }}>{userRole}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button 
+                    onClick={toggleTheme} 
+                    className="btn btn-secondary"
+                    style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem', minHeight: '34px' }}
+                  >
+                    {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+                  </button>
+                  <button 
+                    onClick={handleLogout} 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: '34px', color: 'var(--danger-color)' }}
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -141,18 +227,20 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
+      <footer style={{ padding: '1.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         &copy; {new Date().getFullYear()} Prescura Medical Systems. All rights reserved.
       </footer>
       
       <style>{`
-        @media (min-width: 641px) {
+        @media (min-width: 821px) {
           .desktop-nav { display: flex !important; }
           .mobile-menu-btn { display: none !important; }
+          .mobile-theme-btn { display: none !important; }
         }
-        @media (max-width: 640px) {
+        @media (max-width: 820px) {
           .desktop-nav { display: none !important; }
-          .mobile-menu-btn { display: block !important; }
+          .mobile-menu-btn { display: inline-flex !important; }
+          .mobile-theme-btn { display: inline-flex !important; }
         }
       `}</style>
     </div>

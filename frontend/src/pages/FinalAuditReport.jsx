@@ -211,7 +211,23 @@ export default function FinalAuditReport() {
           .far-score-dial { border-right: none; border-bottom: 1px solid var(--border-color); padding-right: 0; padding-bottom: 1.25rem; }
           .far-meta-grid { grid-template-columns: 1fr 1fr; }
           .far-card-grid { grid-template-columns: 1fr; }
-          .far-team-grid { grid-template-columns: 1fr 1fr; }
+          .far-team-grid { grid-template-columns: repeat(2, 1fr); }
+          .far-filter-card { flex-direction: column; align-items: stretch; gap: 0.85rem; padding: 1rem; }
+          .far-filter-item { width: 100%; min-width: 0; }
+          .far-sample-badge { margin-left: 0; width: 100%; box-sizing: border-box; }
+        }
+
+        @media (max-width: 600px) {
+          .far-report-paper { padding: 1.25rem 0.85rem; border-radius: 14px; }
+          .far-rep-title { font-size: 1.3rem; }
+          .far-rep-sub { font-size: 0.78rem; }
+          .far-grades-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+          .far-meta-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 0.75rem; }
+          .far-meta-cell p { font-size: 0.95rem; }
+          .far-team-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+          .far-actions { width: 100%; }
+          .far-actions button { flex: 1 1 140px; justify-content: center; }
+          .far-table { min-width: 520px; }
         }
       `}</style>
 
@@ -361,81 +377,85 @@ export default function FinalAuditReport() {
 
         {/* SUGGESTED AUDIT REPORT FORMAT (NABH Section Compliance Table) */}
         <h3 className="far-sec-title">Suggested Audit Report Format (Section Compliance)</h3>
-        <table className="far-table">
-          <thead>
-            <tr>
-              <th style={{ width: '40%' }}>Indicator Section</th>
-              <th style={{ width: '20%' }}>Total "Yes"</th>
-              <th style={{ width: '20%' }}>Applicable Criteria</th>
-              <th style={{ width: '20%' }}>Compliance (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sectionCompliance.map(sec => {
-              const color = sec.compliance >= 95 ? '#10b981' : sec.compliance >= 90 ? '#0ea5e9' : sec.compliance >= 80 ? '#f59e0b' : '#ef4444';
-              return (
-                <tr key={sec.sectionKey}>
-                  <td><strong>{sec.name}</strong></td>
-                  <td>{sec.totalYes}</td>
-                  <td>{sec.totalApplicable}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700, color }}>
-                      <span>{sec.compliance}%</span>
-                    </div>
-                    <div className="far-progress-bg">
-                      <div className="far-progress-fill" style={{ width: `${sec.compliance}%`, backgroundColor: color }}></div>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            <tr style={{ background: 'var(--bg-color)', fontWeight: 800 }}>
-              <td>Overall Compliance</td>
-              <td>{sectionCompliance.reduce((s, i) => s + i.totalYes, 0)}</td>
-              <td>{sectionCompliance.reduce((s, i) => s + i.totalApplicable, 0)}</td>
-              <td style={{ color: scoring.overallGradeColor, fontSize: '1.05rem' }}>
-                {scoring.overallCompliance}% ({scoring.overallGrade})
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="table-responsive">
+          <table className="far-table">
+            <thead>
+              <tr>
+                <th style={{ width: '40%' }}>Indicator Section</th>
+                <th style={{ width: '20%' }}>Total "Yes"</th>
+                <th style={{ width: '20%' }}>Applicable Criteria</th>
+                <th style={{ width: '20%' }}>Compliance (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sectionCompliance.map(sec => {
+                const color = sec.compliance >= 95 ? '#10b981' : sec.compliance >= 90 ? '#0ea5e9' : sec.compliance >= 80 ? '#f59e0b' : '#ef4444';
+                return (
+                  <tr key={sec.sectionKey}>
+                    <td><strong>{sec.name}</strong></td>
+                    <td>{sec.totalYes}</td>
+                    <td>{sec.totalApplicable}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700, color }}>
+                        <span>{sec.compliance}%</span>
+                      </div>
+                      <div className="far-progress-bg">
+                        <div className="far-progress-fill" style={{ width: `${sec.compliance}%`, backgroundColor: color }}></div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr style={{ background: 'var(--bg-color)', fontWeight: 800 }}>
+                <td>Overall Compliance</td>
+                <td>{sectionCompliance.reduce((s, i) => s + i.totalYes, 0)}</td>
+                <td>{sectionCompliance.reduce((s, i) => s + i.totalApplicable, 0)}</td>
+                <td style={{ color: scoring.overallGradeColor, fontSize: '1.05rem' }}>
+                  {scoring.overallCompliance}% ({scoring.overallGrade})
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         {/* 10 KEY QUALITY INDICATORS TO REPORT */}
         <h3 className="far-sec-title">Key Quality Indicators to Report (NABH MOM Chapter)</h3>
-        <table className="far-table">
-          <thead>
-            <tr>
-              <th style={{ width: '5%' }}>Sr</th>
-              <th style={{ width: '45%' }}>Quality Indicator</th>
-              <th style={{ width: '15%' }}>Target Benchmark</th>
-              <th style={{ width: '15%' }}>Current Compliance</th>
-              <th style={{ width: '20%' }}>NABH Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {keyQualityIndicators.map(qi => (
-              <tr key={qi.id}>
-                <td style={{ fontWeight: 600 }}>{qi.id}</td>
-                <td><strong>{qi.name}</strong></td>
-                <td style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{qi.target}</td>
-                <td>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{qi.actual}%</span>
-                </td>
-                <td>
-                  <span
-                    className="badge"
-                    style={{
-                      backgroundColor: qi.status === 'Compliant' ? 'rgba(16,185,129,0.12)' : qi.status === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
-                      color: qi.status === 'Compliant' ? '#059669' : qi.status === 'Critical' ? '#dc2626' : '#d97706'
-                    }}
-                  >
-                    {qi.status}
-                  </span>
-                </td>
+        <div className="table-responsive">
+          <table className="far-table">
+            <thead>
+              <tr>
+                <th style={{ width: '5%' }}>Sr</th>
+                <th style={{ width: '45%' }}>Quality Indicator</th>
+                <th style={{ width: '15%' }}>Target Benchmark</th>
+                <th style={{ width: '15%' }}>Current Compliance</th>
+                <th style={{ width: '20%' }}>NABH Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {keyQualityIndicators.map(qi => (
+                <tr key={qi.id}>
+                  <td style={{ fontWeight: 600 }}>{qi.id}</td>
+                  <td><strong>{qi.name}</strong></td>
+                  <td style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{qi.target}</td>
+                  <td>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{qi.actual}%</span>
+                  </td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: qi.status === 'Compliant' ? 'rgba(16,185,129,0.12)' : qi.status === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
+                        color: qi.status === 'Compliant' ? '#059669' : qi.status === 'Critical' ? '#dc2626' : '#d97706'
+                      }}
+                    >
+                      {qi.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Non-Conformities & Corrective Actions Grid */}
         <div className="far-card-grid">
@@ -532,56 +552,58 @@ export default function FinalAuditReport() {
 
         {/* Per-Prescription Audit Registry */}
         <h3 className="far-sec-title">Prescription Audit Registry (N = {meta.totalAudited})</h3>
-        <table className="far-table">
-          <thead>
-            <tr>
-              <th style={{ width: '8%' }}>Sr No</th>
-              <th style={{ width: '22%' }}>Audit / File ID</th>
-              <th style={{ width: '25%' }}>Patient & Prescriber</th>
-              <th style={{ width: '15%' }}>Applicable Criteria</th>
-              <th style={{ width: '15%' }}>Compliance (%)</th>
-              <th style={{ width: '15%' }}>NABH Grade</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportMetrics.audits.map((a, idx) => {
-              const pData = a.prescriptionData || a.extractedData || {};
-              const patient = pData.patientName?.value || pData.patientName || 'Patient';
-              const doctor = pData.doctorName?.value || pData.doctorName || 'Doctor';
-              const s = a.scoreInfo;
-              return (
-                <tr key={a.id || idx}>
-                  <td>#{idx + 1}</td>
-                  <td>
-                    <span
-                      style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600 }}
-                      onClick={() => navigate(`/audit-review/${a.id || a.auditId}`)}
-                      title="Click to inspect audit"
-                    >
-                      {a.id || a.auditId}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{patient}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{doctor}</div>
-                  </td>
-                  <td>{s.yesCount} / {s.totalApplicable} Yes</td>
-                  <td style={{ fontWeight: 700, color: s.gradeColor }}>
-                    {s.complianceScore}%
-                  </td>
-                  <td>
-                    <span
-                      className="badge"
-                      style={{ backgroundColor: s.gradeBg, color: s.gradeColor }}
-                    >
-                      {s.grade}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="table-responsive">
+          <table className="far-table">
+            <thead>
+              <tr>
+                <th style={{ width: '8%' }}>Sr No</th>
+                <th style={{ width: '22%' }}>Audit / File ID</th>
+                <th style={{ width: '25%' }}>Patient & Prescriber</th>
+                <th style={{ width: '15%' }}>Applicable Criteria</th>
+                <th style={{ width: '15%' }}>Compliance (%)</th>
+                <th style={{ width: '15%' }}>NABH Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportMetrics.audits.map((a, idx) => {
+                const pData = a.prescriptionData || a.extractedData || {};
+                const patient = pData.patientName?.value || pData.patientName || 'Patient';
+                const doctor = pData.doctorName?.value || pData.doctorName || 'Doctor';
+                const s = a.scoreInfo;
+                return (
+                  <tr key={a.id || idx}>
+                    <td>#{idx + 1}</td>
+                    <td>
+                      <span
+                        style={{ color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600 }}
+                        onClick={() => navigate(`/audit-review/${a.id || a.auditId}`)}
+                        title="Click to inspect audit"
+                      >
+                        {a.id || a.auditId}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{patient}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{doctor}</div>
+                    </td>
+                    <td>{s.yesCount} / {s.totalApplicable} Yes</td>
+                    <td style={{ fontWeight: 700, color: s.gradeColor }}>
+                      {s.complianceScore}%
+                    </td>
+                    <td>
+                      <span
+                        className="badge"
+                        style={{ backgroundColor: s.gradeBg, color: s.gradeColor }}
+                      >
+                        {s.grade}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
         {/* Accreditation Footer */}
         <div style={{ marginTop: '2.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>

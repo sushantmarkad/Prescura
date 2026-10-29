@@ -17,6 +17,7 @@ export default function AuditReview() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [navigatingNext, setNavigatingNext] = useState(false);
   const [showDoneModal, setShowDoneModal] = useState(false);
+  const [mobileViewTab, setMobileViewTab] = useState('checklist'); // 'checklist' | 'image' | 'both'
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -117,32 +118,32 @@ export default function AuditReview() {
   };
 
   const renderCriterion = (item) => (
-    <div key={item.criterionId} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', marginBottom: '1rem', backgroundColor: 'var(--surface-color)' }}>
-      <div className="flex-between" style={{ marginBottom: '0.8rem' }}>
-        <div style={{ fontWeight: 600 }}>{item.criterionId}. {item.question}</div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <div key={item.criterionId} className="ar-criterion-item">
+      <div className="ar-criterion-top">
+        <div className="ar-criterion-title">{item.criterionId}. {item.question}</div>
+        <div className="ar-criterion-btns">
           <button
             className={`btn ${item.finalAnswer === 'YES' ? 'btn-success' : 'btn-secondary'}`}
-            style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}
+            style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', minHeight: '36px' }}
             onClick={() => handleOverride(item.criterionId, 'YES')}
           >YES</button>
           <button
             className={`btn ${item.finalAnswer === 'NO' ? 'btn-danger' : 'btn-secondary'}`}
-            style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem' }}
+            style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', minHeight: '36px' }}
             onClick={() => handleOverride(item.criterionId, 'NO')}
           >NO</button>
         </div>
       </div>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+      <div className="ar-criterion-meta">
         <div>
           <strong>AI Evidence:</strong> {item.evidence}
           {item.finalAnswer !== item.aiAnswer && (
-            <span style={{ color: 'var(--accent-color)', marginLeft: '1rem', fontWeight: 600 }}>[Human Overridden]</span>
+            <span style={{ color: 'var(--accent-color)', marginLeft: '0.5rem', fontWeight: 600 }}>[Human Overridden]</span>
           )}
         </div>
-        <div>
-          {item.confidence > 0 && <span>Conf: {Math.round(item.confidence * 100)}%</span>}
-        </div>
+        {item.confidence > 0 && (
+          <div style={{ flexShrink: 0 }}>Conf: {Math.round(item.confidence * 100)}%</div>
+        )}
       </div>
     </div>
   );
@@ -193,13 +194,128 @@ export default function AuditReview() {
           from { opacity: 0; transform: scale(0.8); }
           to { opacity: 1; transform: scale(1); }
         }
+        
+        .ar-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          height: calc(100vh - 220px);
+          min-height: 520px;
+        }
+
+        .ar-criterion-item {
+          padding: 0.9rem;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-md);
+          margin-bottom: 0.85rem;
+          background-color: var(--surface-color);
+        }
+
+        .ar-criterion-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 0.75rem;
+          margin-bottom: 0.6rem;
+          flex-wrap: wrap;
+        }
+
+        .ar-criterion-title {
+          font-weight: 600;
+          font-size: 0.9rem;
+          flex: 1;
+          min-width: 180px;
+        }
+
+        .ar-criterion-btns {
+          display: flex;
+          gap: 0.4rem;
+          flex-shrink: 0;
+        }
+
+        .ar-criterion-meta {
+          font-size: 0.82rem;
+          color: var(--text-secondary);
+          display: flex;
+          justify-content: space-between;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .ar-mobile-tabs {
+          display: none;
+          background: var(--surface-color);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 4px;
+          margin-bottom: 1rem;
+          gap: 4px;
+        }
+
+        .ar-mobile-tab-btn {
+          flex: 1;
+          padding: 0.6rem 0.5rem;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.35rem;
+          font-family: inherit;
+        }
+
+        .ar-mobile-tab-btn.active {
+          background: var(--primary-color);
+          color: #fff;
+          box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 900px) {
+          .ar-grid {
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            min-height: auto;
+            gap: 1.25rem;
+          }
+
+          .ar-mobile-tabs {
+            display: flex;
+          }
+
+          .ar-col-image {
+            height: 380px !important;
+          }
+
+          .ar-col-image.mobile-hidden,
+          .ar-col-checklist.mobile-hidden {
+            display: none !important;
+          }
+
+          .ar-checklist-scroll {
+            max-height: none !important;
+            overflow-y: visible !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .ar-col-image {
+            height: 300px !important;
+          }
+        }
       `}</style>
 
       {/* Top Navigation Bar */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
+      <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <button
           onClick={() => navigate('/dashboard')}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: '600', padding: '0.5rem 0', transition: 'color 0.2s' }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: '600', padding: '0.4rem 0', transition: 'color 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
@@ -208,11 +324,46 @@ export default function AuditReview() {
         </button>
       </div>
 
-      <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: 'calc(100vh - 240px)' }}>
+      {/* Mobile Tab Switcher */}
+      <div className="ar-mobile-tabs">
+        <button
+          className={`ar-mobile-tab-btn ${mobileViewTab === 'checklist' ? 'active' : ''}`}
+          onClick={() => setMobileViewTab('checklist')}
+        >
+          <span>📋</span> Checklist ({liveScore.complianceScore}%)
+        </button>
+        <button
+          className={`ar-mobile-tab-btn ${mobileViewTab === 'image' ? 'active' : ''}`}
+          onClick={() => setMobileViewTab('image')}
+        >
+          <span>🖼️</span> Prescription
+        </button>
+        <button
+          className={`ar-mobile-tab-btn ${mobileViewTab === 'both' ? 'active' : ''}`}
+          onClick={() => setMobileViewTab('both')}
+        >
+          <span>📑</span> Both
+        </button>
+      </div>
+
+      <div className="ar-grid animate-fade-in">
         {/* LEFT COLUMN: PRESCRIPTION IMAGE */}
-        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Prescription Image</h3>
-          <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+        <div className={`glass-card ar-col-image ${mobileViewTab === 'checklist' ? 'mobile-hidden' : ''}`} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem' }}>Prescription Image</h3>
+            {imageUrl && (
+              <a 
+                href={imageUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="btn btn-secondary" 
+                style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', minHeight: 'auto' }}
+              >
+                🔍 Full Size
+              </a>
+            )}
+          </div>
+          <div style={{ flex: 1, backgroundColor: '#000', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', minHeight: '220px' }}>
             {imageUrl ? (
               <img src={imageUrl.toLowerCase().endsWith('.pdf') ? imageUrl.slice(0, -4) + '.jpg' : imageUrl} alt="Prescription Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             ) : (
@@ -222,13 +373,13 @@ export default function AuditReview() {
         </div>
 
         {/* RIGHT COLUMN: AUDIT CHECKLIST */}
-        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className={`glass-card ar-col-checklist ${mobileViewTab === 'image' ? 'mobile-hidden' : ''}`} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h3 style={{ margin: 0 }}>Audit Checklist</h3>
-            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Audit Checklist</h3>
+            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 className="btn btn-secondary print-hide"
-                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', color: 'var(--primary-color)' }}
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', color: 'var(--primary-color)', minHeight: 'auto' }}
                 onClick={() => navigate('/final-report')}
                 title="View Hospital-wide NABH Audit Report"
               >
@@ -236,19 +387,19 @@ export default function AuditReview() {
               </button>
               <button
                 className="btn btn-secondary print-hide"
-                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', minHeight: 'auto' }}
                 onClick={handleDownloadExcel}
                 disabled={!classification} // Only enable if saved
               >
-                📊 Excel Report
+                📊 Excel
               </button>
               <button
                 className="btn btn-secondary print-hide"
-                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }}
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', minHeight: 'auto' }}
                 onClick={handleDownloadPDF}
                 disabled={!classification} // Only enable if saved
               >
-                📄 PDF Report
+                📄 PDF
               </button>
             </div>
           </div>
@@ -258,7 +409,7 @@ export default function AuditReview() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0.6rem 0.9rem',
+            padding: '0.6rem 0.85rem',
             background: liveScore.gradeBg,
             borderRadius: '10px',
             border: `1.5px solid ${liveScore.gradeColor}40`,
@@ -266,10 +417,10 @@ export default function AuditReview() {
             flexWrap: 'wrap',
             gap: '0.5rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Compliance:</span>
-              <span style={{ fontSize: '1.2rem', fontWeight: 900, color: liveScore.gradeColor, letterSpacing: '-0.02em' }}>{liveScore.complianceScore}%</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>({liveScore.yesCount}/{liveScore.totalApplicable} Yes)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Compliance:</span>
+              <span style={{ fontSize: '1.15rem', fontWeight: 900, color: liveScore.gradeColor, letterSpacing: '-0.02em' }}>{liveScore.complianceScore}%</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>({liveScore.yesCount}/{liveScore.totalApplicable} Yes)</span>
             </div>
             <span
               className="badge"
@@ -278,14 +429,14 @@ export default function AuditReview() {
                 color: liveScore.gradeColor,
                 border: `1px solid ${liveScore.gradeColor}`,
                 fontWeight: 800,
-                fontSize: '0.72rem'
+                fontSize: '0.7rem'
               }}
             >
               NABH: {liveScore.grade}
             </span>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+          <div className="ar-checklist-scroll" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.35rem' }}>
 
             {/* Dynamically map through all NABH sections */}
             {['A', 'B', 'C', 'D', 'E', 'F'].map(section => {
@@ -293,7 +444,7 @@ export default function AuditReview() {
               if (sectionItems.length === 0) return null;
               return (
                 <React.Fragment key={section}>
-                  <h4 style={{ color: 'var(--primary-color)', marginTop: section === 'A' ? '1rem' : '2rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                  <h4 style={{ color: 'var(--primary-color)', marginTop: section === 'A' ? '0.75rem' : '1.5rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem', fontSize: '0.92rem' }}>
                     {sectionItems[0].sectionName}
                   </h4>
                   {sectionItems.map(renderCriterion)}
@@ -303,13 +454,13 @@ export default function AuditReview() {
 
           </div>
 
-          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
+          <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             {!classification ? (
               <>
-                <button className="btn btn-secondary" style={{ flex: 1 }}>Save Draft</button>
+                <button className="btn btn-secondary" style={{ flex: '1 1 120px' }}>Save Draft</button>
                 <button
                   className="btn btn-primary"
-                  style={{ flex: 2 }}
+                  style={{ flex: '2 1 180px' }}
                   disabled={finalizing}
                   onClick={async () => {
                     setFinalizing(true);

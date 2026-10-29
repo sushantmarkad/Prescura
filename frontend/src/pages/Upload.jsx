@@ -39,13 +39,29 @@ const ArrowRightIcon = () => (
    ═══════════════════════════════════════════ */
 function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, totalIdx = 1 }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [rects, setRects] = useState([]);
   const [currentRect, setCurrentRect] = useState(null);
   const [imgLoaded, setImgLoaded] = useState(false);
   const imgRef = useRef(null);
-  const displayWidth = Math.min(window.innerWidth - 64, 680);
+  const [displayWidth, setDisplayWidth] = useState(() => Math.min(window.innerWidth - 64, 680));
+
+  // Dynamically update display width based on container
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const w = containerRef.current.clientWidth;
+        if (w > 0) setDisplayWidth(w);
+      } else {
+        setDisplayWidth(Math.min(window.innerWidth - (window.innerWidth < 640 ? 32 : 64), 680));
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   // Load image onto canvas
   useEffect(() => {
@@ -62,8 +78,9 @@ function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, total
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const touch = e.touches?.[0] || e.changedTouches?.[0];
+    const clientX = touch ? touch.clientX : e.clientX;
+    const clientY = touch ? touch.clientY : e.clientY;
     return {
       x: (clientX - rect.left) * scaleX,
       y: (clientY - rect.top) * scaleY,
@@ -154,7 +171,7 @@ function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, total
   };
 
   return (
-    <div className="pm-root">
+    <div className="pm-root" ref={containerRef}>
       <style>{`
         .pm-root { display: flex; flex-direction: column; gap: 1.25rem; }
         .pm-header { display: flex; align-items: center; gap: 0.75rem; }
@@ -162,19 +179,19 @@ function PrivacyMasker({ imageFile, onMaskingDone, onSkip, currentIdx = 1, total
         .pm-header-text h3 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
         .pm-header-text p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.1rem; }
         .pm-hint { background: rgba(14,165,233,0.08); border: 1px solid rgba(14,165,233,0.2); border-radius: 10px; padding: 0.65rem 1rem; font-size: 0.8rem; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; }
-        .pm-canvas-wrap { position: relative; border-radius: 12px; overflow: hidden; border: 1.5px solid var(--border-color); background: #000; cursor: crosshair; touch-action: none; }
+        .pm-canvas-wrap { position: relative; border-radius: 12px; overflow: hidden; border: 1.5px solid var(--border-color); background: #000; cursor: crosshair; touch-action: none; width: 100%; }
         .pm-canvas-wrap canvas { display: block; width: 100%; height: auto; }
         .pm-canvas-wrap::after { content: 'Draw boxes over patient name, DOB, address…'; position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); color: rgba(255,255,255,0.7); font-size: 0.75rem; padding: 1rem 0.75rem 0.5rem; pointer-events: none; opacity: ${imgLoaded ? 1 : 0}; transition: opacity 0.3s; }
-        .pm-toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-        .pm-toolbar-left { display: flex; gap: 0.5rem; flex: 1; }
-        .pm-tool-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border-color); background: var(--surface-color); color: var(--text-primary); transition: all 0.15s; font-family: inherit; }
+        .pm-toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+        .pm-toolbar-left { display: flex; gap: 0.5rem; }
+        .pm-tool-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border-color); background: var(--surface-color); color: var(--text-primary); transition: all 0.15s; font-family: inherit; min-height: 36px; }
         .pm-tool-btn:hover:not(:disabled) { background: var(--bg-color); border-color: var(--text-secondary); }
         .pm-tool-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pm-count { margin-left: auto; font-size: 0.78rem; color: var(--text-secondary); background: var(--bg-color); border-radius: 999px; padding: 0.25rem 0.65rem; border: 1px solid var(--border-color); }
-        .pm-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
-        .pm-skip-btn { flex: 1; padding: 0.75rem; border-radius: 12px; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border-color); background: transparent; color: var(--text-secondary); transition: all 0.15s; font-family: inherit; }
+        .pm-count { font-size: 0.78rem; color: var(--text-secondary); background: var(--bg-color); border-radius: 999px; padding: 0.25rem 0.65rem; border: 1px solid var(--border-color); white-space: nowrap; }
+        .pm-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
+        .pm-skip-btn { flex: 1 1 120px; padding: 0.75rem; border-radius: 12px; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border-color); background: transparent; color: var(--text-secondary); transition: all 0.15s; font-family: inherit; min-height: 42px; }
         .pm-skip-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
-        .pm-apply-btn { flex: 2; padding: 0.75rem; border-radius: 12px; font-size: 0.875rem; font-weight: 700; cursor: pointer; border: none; background: linear-gradient(135deg, var(--primary-color), #6366f1); color: #fff; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; box-shadow: 0 4px 14px rgba(14,165,233,0.3); }
+        .pm-apply-btn { flex: 2 1 180px; padding: 0.75rem; border-radius: 12px; font-size: 0.875rem; font-weight: 700; cursor: pointer; border: none; background: linear-gradient(135deg, var(--primary-color), #6366f1); color: #fff; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; box-shadow: 0 4px 14px rgba(14,165,233,0.3); min-height: 42px; }
         .pm-apply-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(14,165,233,0.4); }
       `}</style>
 
@@ -472,11 +489,22 @@ export default function Upload() {
 
         /* Steps indicator */
         .up-steps { display: flex; align-items: center; gap: 0; margin-bottom: 1.75rem; }
-        .up-step { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+        .up-step { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
         .up-step.active { color: var(--primary-color); }
         .up-step.done { color: #059669; }
         .up-step-num { width: 22px; height: 22px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
-        .up-step-sep { flex: 1; height: 1px; background: var(--border-color); margin: 0 0.5rem; }
+        .up-step-sep { flex: 1; height: 1px; background: var(--border-color); margin: 0 0.5rem; min-width: 8px; }
+
+        @media (max-width: 640px) {
+          .up-card { padding: 1.15rem; border-radius: 16px; }
+          .up-steps { margin-bottom: 1.25rem; }
+          .up-step-text { display: none; }
+          .up-step.active .up-step-text { display: inline; font-size: 0.72rem; }
+          .up-dropzone { min-height: 190px; padding: 1.25rem 0.75rem; }
+          .up-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+          .up-thumb, .up-add-more { height: 80px; }
+          .up-privacy-notice { padding: 0.75rem; }
+        }
       `}</style>
 
       <h1 className="up-title">Upload Prescription</h1>
@@ -500,7 +528,7 @@ export default function Upload() {
                 <div className="up-step-num">
                   {me < cur ? <CheckIcon /> : i + 1}
                 </div>
-                {s.label}
+                <span className="up-step-text">{s.label}</span>
               </div>
               {i < arr.length - 1 && <div className="up-step-sep" />}
             </React.Fragment>

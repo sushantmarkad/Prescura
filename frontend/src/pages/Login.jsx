@@ -37,8 +37,8 @@ export default function Login() {
   };
 
   return (
-    <div className="flex-center" style={{ minHeight: '80vh' }}>
-      <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
+    <div className="flex-center" style={{ minHeight: '80vh', padding: '1.25rem 1rem', width: '100%' }}>
+      <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <h2 style={{ color: 'var(--primary-color)' }}>{isLogin ? 'System Login' : 'Create Account'}</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>AI Prescription Audit & Safety</p>

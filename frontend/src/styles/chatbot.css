@@ -629,10 +629,22 @@ body.dark .chatbot-disclaimer {
     border: none;
   }
 
+  .chatbot-header {
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .chatbot-input-bar {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+
   .chatbot-bubble-trigger {
-    bottom: 16px;
-    right: 16px;
-    width: 56px;
-    height: 56px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: max(16px, env(safe-area-inset-right));
+    width: 54px;
+    height: 54px;
   }
 }

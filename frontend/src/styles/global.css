@@ -244,18 +244,24 @@ a:hover { color: var(--primary-hover); }
 .badge-irrational { background-color: var(--danger-light); color: var(--danger-hover); }
 .badge-pending { background-color: var(--primary-light); color: var(--primary-hover); }
 
-/* RESPONSIVE TABLE CARDS on mobile */
+/* RESPONSIVE TABLE CARDS on mobile (opt-in via .table-cards-mobile) */
 @media (max-width: 640px) {
-  table thead { display: none; }
-  table, table tbody, table tr, table td { display: block; width: 100%; }
-  table tr {
+  table.table-cards-mobile thead { display: none; }
+  table.table-cards-mobile, 
+  table.table-cards-mobile tbody, 
+  table.table-cards-mobile tr, 
+  table.table-cards-mobile td { 
+    display: block; 
+    width: 100%; 
+  }
+  table.table-cards-mobile tr {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     margin-bottom: 0.75rem;
     padding: 0.5rem;
     background: var(--surface-color);
   }
-  table td {
+  table.table-cards-mobile td {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -263,8 +269,8 @@ a:hover { color: var(--primary-hover); }
     border: none;
     border-bottom: 1px solid var(--border-color);
   }
-  table td:last-child { border-bottom: none; }
-  table td::before {
+  table.table-cards-mobile td:last-child { border-bottom: none; }
+  table.table-cards-mobile td::before {
     content: attr(data-label);
     font-weight: 600;
     font-size: 0.75rem;
@@ -274,6 +280,15 @@ a:hover { color: var(--primary-hover); }
     flex-shrink: 0;
     margin-right: 1rem;
   }
+}
+
+/* Base Table Responsive Wrapper */
+.table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
 }
 
 /* MODAL OVERLAY — always covers full safe-area viewport */
@@ -346,28 +361,66 @@ a:hover { color: var(--primary-hover); }
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
-  .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+  /* Prevent iOS Safari auto-zoom on input focus */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .grid-cols-2, .grid-cols-3 {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+  }
   
-  .glass-card { padding: 1rem; }
+  .glass-card { 
+    padding: 1.15rem; 
+  }
   
-  h1 { font-size: 1.6rem; }
-  h2 { font-size: 1.35rem; }
-  h3 { font-size: 1.15rem; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.1rem; }
   
   .container {
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
   }
 
-  /* Make tables responsive */
-  .table-responsive {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .btn {
+    min-height: 40px;
+    padding: 0.55rem 1rem;
+  }
+
+  .modal-card {
+    padding: 1.5rem 1.25rem;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .glass-card {
+    padding: 1rem 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+
+  .btn {
+    min-height: 42px;
+    font-size: 0.9rem;
   }
 }
 

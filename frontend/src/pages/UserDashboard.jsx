@@ -320,12 +320,20 @@ export default function UserDashboard() {
         @keyframes ud-spin   { to { transform: rotate(360deg) } }
 
         /* ── Responsive ── */
-        @media (max-width: 700px) {
-          .ud-stats { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 768px) {
+          .ud-stats { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+          .ud-header { flex-direction: column; align-items: stretch; gap: 0.85rem; margin-bottom: 1.25rem; }
+          .ud-header-actions { width: 100%; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+          .ud-header-actions .ud-export-btn { flex: 1 1 calc(50% - 0.25rem); justify-content: center; }
         }
         @media (max-width: 500px) {
-          .ud-stat { padding: 0.9rem 1rem; gap: 0.75rem; }
+          .ud-stat { padding: 0.8rem 0.85rem; gap: 0.65rem; border-radius: 14px; }
+          .ud-stat-val { font-size: 1.4rem; }
+          .ud-stat-lbl { font-size: 0.65rem; }
+          .ud-stat-icon { width: 36px; height: 36px; border-radius: 10px; }
+          .ud-table { min-width: 460px; }
           .ud-table .ud-td--dept, .ud-table .ud-th--dept { display: none; }
+          .ud-tab { padding: 0.85rem 0.85rem; font-size: 0.8rem; }
         }
       `}</style>
 
@@ -335,7 +343,7 @@ export default function UserDashboard() {
           <h1 className="ud-title">My Dashboard</h1>
           <p className="ud-subtitle">Logged in as <strong>{currentUser?.email}</strong></p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="ud-header-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button 
             className="ud-export-btn" 
             style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)', boxShadow: '0 4px 14px rgba(5,150,105,0.35)' }}

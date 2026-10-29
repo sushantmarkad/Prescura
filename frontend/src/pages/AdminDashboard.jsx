@@ -72,14 +72,58 @@ export default function AdminDashboard() {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <style>{`
+        .admin-header {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+        }
+        .admin-actions {
+          display: flex;
+          gap: 0.6rem;
+          flex-wrap: wrap;
+        }
+        .admin-kpi-val {
+          font-size: 2.5rem;
+          font-weight: bold;
+        }
+        @media (max-width: 768px) {
+          .admin-header {
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+          }
+          .admin-actions {
+            width: 100%;
+          }
+          .admin-actions .btn {
+            flex: 1 1 calc(50% - 0.3rem);
+            font-size: 0.82rem;
+          }
+          .admin-kpi-val {
+            font-size: 1.8rem;
+          }
+        }
+        @media (max-width: 480px) {
+          .admin-actions .btn {
+            flex: 1 1 100%;
+          }
+          .admin-kpi-val {
+            font-size: 1.5rem;
+          }
+        }
+      `}</style>
+      <div className="admin-header">
         <div>
           <h1>Super Admin Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)' }}>
             System overview. Role: <span className="badge badge-pending">{userRole}</span>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="admin-actions">
           <button 
             className="btn btn-primary" 
             style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)' }}
@@ -99,30 +143,30 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid-cols-4" style={{ marginBottom: '3rem' }}>
+      <div className="grid-cols-4" style={{ marginBottom: '2rem' }}>
         <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Audited</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{loading ? '...' : stats.totalAudited.toLocaleString()}</div>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Audited</h3>
+          <div className="admin-kpi-val" style={{ color: 'var(--text-primary)' }}>{loading ? '...' : stats.totalAudited.toLocaleString()}</div>
         </div>
         <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rational</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--success-color)' }}>{loading ? '...' : stats.rational.toLocaleString()}</div>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rational</h3>
+          <div className="admin-kpi-val" style={{ color: 'var(--success-color)' }}>{loading ? '...' : stats.rational.toLocaleString()}</div>
         </div>
         <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Irrational</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--danger-color)' }}>{loading ? '...' : stats.irrational.toLocaleString()}</div>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Irrational</h3>
+          <div className="admin-kpi-val" style={{ color: 'var(--danger-color)' }}>{loading ? '...' : stats.irrational.toLocaleString()}</div>
         </div>
         <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Review</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--accent-color)' }}>{loading ? '...' : stats.pending.toLocaleString()}</div>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Review</h3>
+          <div className="admin-kpi-val" style={{ color: 'var(--accent-color)' }}>{loading ? '...' : stats.pending.toLocaleString()}</div>
         </div>
       </div>
 
       <div className="grid-cols-2">
         <div className="glass-card" style={{ gridColumn: '1 / -1' }}>
           <h3 style={{ marginBottom: '1rem' }}>User Management</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div className="table-responsive">
+            <table style={{ width: '100%', minWidth: '420px', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <th style={{ padding: '0.75rem' }}>Email</th>
@@ -137,7 +181,7 @@ export default function AdminDashboard() {
                     <td style={{ padding: '0.75rem' }}><span className={`badge ${u.role === 'SUPER_ADMIN' ? 'badge-rational' : 'badge-pending'}`}>{u.role}</span></td>
                     <td style={{ padding: '0.75rem' }}>
                       {u.role !== 'SUPER_ADMIN' && (
-                        <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => deleteUser(u.uid)}>
+                        <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', minHeight: '32px' }} onClick={() => deleteUser(u.uid)}>
                           Delete
                         </button>
                       )}
