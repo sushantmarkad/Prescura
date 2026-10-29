@@ -2,6 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { PlusIcon, CheckIcon, AlertTriangleIcon } from '../components/Icons';
+
+const TrashIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+);
 // import { db } from '../config/firebase'; // Removed as we route via backend now
 // import { doc, deleteDoc } from 'firebase/firestore'; // Removed
 
@@ -30,7 +37,9 @@ function DeleteModal({ onCancel, onConfirm, isDeleting }) {
         width: '100%', maxWidth: '380px', padding: '2rem 1.75rem',
         textAlign: 'center', animation: 'modalUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
       }}>
-        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--danger-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', margin: '0 auto 1.25rem' }}>🗑️</div>
+        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--danger-light)', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+          <TrashIcon size={26} />
+        </div>
         <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem', color: 'var(--text-primary)', fontWeight: 700 }}>Delete Prescription?</h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.65, margin: '0 0 1.75rem' }}>
           This prescription audit will be <strong>permanently deleted</strong>. This action cannot be undone.
@@ -53,8 +62,8 @@ function Toast({ message, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
   return createPortal(
     <div style={{ position: 'fixed', bottom: 'max(1.5rem, env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', zIndex: 99999, animation: 'toastIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards', pointerEvents: 'none' }}>
-      <div style={{ background: type === 'error' ? 'var(--danger-color)' : '#10b981', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '50px', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
-        {type === 'error' ? '⚠️' : '✅'} {message}
+      <div style={{ background: type === 'error' ? 'var(--danger-color)' : '#10b981', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '50px', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {type === 'error' ? <AlertTriangleIcon size={16} /> : <CheckIcon size={16} />} {message}
       </div>
       <style>{`@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>,
@@ -236,8 +245,8 @@ export default function Dashboard() {
 
   const filterButtons = [
     { label: 'All', value: 'all' },
-    { label: '🟢 Rational', value: 'RATIONAL' },
-    { label: '🔴 Irrational', value: 'IRRATIONAL' },
+    { label: 'Rational', value: 'RATIONAL' },
+    { label: 'Irrational', value: 'IRRATIONAL' },
   ];
 
   return (
@@ -250,8 +259,8 @@ export default function Dashboard() {
             Welcome back, {currentUser?.email || 'User'}. Role: <span className="badge badge-pending">{userRole || 'VIEWER'}</span>
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate('/upload')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>＋</span> Upload New
+        <button className="btn btn-primary" onClick={() => navigate('/upload')} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <PlusIcon size={16} /> Upload New
         </button>
       </div>
 
@@ -316,8 +325,8 @@ export default function Dashboard() {
               padding: '0.4rem 0.75rem', fontSize: '0.85rem', cursor: 'pointer'
             }}
           >
-            <option value="newest">📅 Newest First</option>
-            <option value="oldest">📅 Oldest First</option>
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
           </select>
         </div>
 
@@ -407,7 +416,7 @@ export default function Dashboard() {
                     onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
                     title="Delete Audit"
                   >
-                    🗑️
+                    <TrashIcon size={14} />
                   </button>
                 </div>
               </div>

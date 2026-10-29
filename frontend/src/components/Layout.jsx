@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { MoonIcon, SunIcon, MenuIcon, CloseIcon, DashboardIcon, PlusIcon, ReportIcon, LogoutIcon } from './Icons';
 
 export default function Layout() {
   const { currentUser, userRole, logout } = useAuth();
@@ -84,14 +85,16 @@ export default function Layout() {
                   <Link to="/final-report" style={{ color: isActive('/final-report') }}>Final Report</Link>
                 </nav>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
-                  <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0.2rem' }} title="Toggle Theme">
-                    {theme === 'light' ? '🌙' : '☀️'}
+                  <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', padding: '0.3rem' }} title="Toggle Theme" aria-label="Toggle Theme">
+                    {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
                   </button>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{currentUser.email.split('@')[0]}</div>
                     <div className="badge badge-pending" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem' }}>{userRole}</div>
                   </div>
-                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto' }}>Logout</button>
+                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <LogoutIcon size={14} /> Logout
+                  </button>
                 </div>
               </div>
 
@@ -100,10 +103,10 @@ export default function Layout() {
                 <button
                   className="mobile-theme-btn"
                   onClick={toggleTheme}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '0.4rem', display: 'none' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', padding: '0.4rem', display: 'none', alignItems: 'center' }}
                   aria-label="Toggle Theme"
                 >
-                  {theme === 'light' ? '🌙' : '☀️'}
+                  {theme === 'light' ? <MoonIcon size={19} /> : <SunIcon size={19} />}
                 </button>
                 <button
                   className="mobile-menu-btn"
@@ -113,7 +116,6 @@ export default function Layout() {
                     border: '1px solid var(--border-color)', 
                     borderRadius: '8px', 
                     cursor: 'pointer', 
-                    fontSize: '1.3rem', 
                     color: 'var(--text-primary)', 
                     display: 'none',
                     width: '40px',
@@ -124,7 +126,7 @@ export default function Layout() {
                   }}
                   aria-label="Toggle menu"
                 >
-                  {menuOpen ? '✕' : '☰'}
+                  {menuOpen ? <CloseIcon size={18} /> : <MenuIcon size={20} />}
                 </button>
               </div>
             </>
@@ -149,11 +151,11 @@ export default function Layout() {
                 background: location.pathname === '/' ? 'var(--primary-light)' : 'transparent',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.6rem',
+                gap: '0.65rem',
                 margin: '0.2rem 0'
               }}
             >
-              <span style={{ fontSize: '1.1rem' }}>📊</span> Dashboard
+              <DashboardIcon size={18} /> Dashboard
             </Link>
             <Link 
               to="/upload" 
@@ -165,11 +167,11 @@ export default function Layout() {
                 background: location.pathname === '/upload' ? 'var(--primary-light)' : 'transparent',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.6rem',
+                gap: '0.65rem',
                 margin: '0.2rem 0'
               }}
             >
-              <span style={{ fontSize: '1.1rem' }}>＋</span> Audit New
+              <PlusIcon size={18} /> Audit New
             </Link>
             <Link 
               to="/final-report" 
@@ -181,11 +183,11 @@ export default function Layout() {
                 background: location.pathname === '/final-report' ? 'var(--primary-light)' : 'transparent',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.6rem',
+                gap: '0.65rem',
                 margin: '0.2rem 0'
               }}
             >
-              <span style={{ fontSize: '1.1rem' }}>📑</span> Final NABH Report
+              <ReportIcon size={18} /> Final NABH Report
             </Link>
 
             <div style={{ 
@@ -205,16 +207,16 @@ export default function Layout() {
                   <button 
                     onClick={toggleTheme} 
                     className="btn btn-secondary"
-                    style={{ padding: '0.35rem 0.65rem', fontSize: '0.85rem', minHeight: '34px' }}
+                    style={{ padding: '0.35rem 0.65rem', fontSize: '0.82rem', minHeight: '34px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                   >
-                    {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+                    {theme === 'light' ? <><MoonIcon size={14} /> Dark</> : <><SunIcon size={14} /> Light</>}
                   </button>
                   <button 
                     onClick={handleLogout} 
                     className="btn btn-secondary" 
-                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: '34px', color: 'var(--danger-color)' }}
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: '34px', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
-                    Logout
+                    <LogoutIcon size={13} /> Logout
                   </button>
                 </div>
               </div>

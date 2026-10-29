@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { StethoscopeIcon, ShieldCheckIcon, CheckIcon, PlusIcon } from './Icons';
 
 // SVG Icons
 const BotIcon = () => (
@@ -315,8 +316,9 @@ export default function SymptomChatbot() {
                     key={sym.id}
                     className={`chatbot-symptom-chip ${isSelected ? 'active' : ''}`}
                     onClick={() => toggleSymptomSelection(sym)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                   >
-                    <span>{isSelected ? '✓' : '+'}</span>
+                    {isSelected ? <CheckIcon size={12} /> : <PlusIcon size={12} />}
                     <span>{sym.label}</span>
                   </button>
                 );
@@ -364,10 +366,10 @@ export default function SymptomChatbot() {
                       key={sym.id}
                       className={`chatbot-symptom-chip ${isSelected ? 'active' : ''}`}
                       onClick={() => toggleSymptomSelection(sym)}
-                      style={{ fontSize: '0.7rem' }}
+                      style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                     >
-                      {isSelected ? '✓ ' : '+ '}
-                      {sym.label}
+                      {isSelected ? <CheckIcon size={11} /> : <PlusIcon size={11} />}
+                      <span>{sym.label}</span>
                     </button>
                   );
                 })}
@@ -434,8 +436,8 @@ export default function SymptomChatbot() {
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
                               Primary Prediction
                             </div>
-                            <h4 className="prediction-condition-title">
-                              🩺 {msg.prediction.topPrediction.disease}
+                            <h4 className="prediction-condition-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <StethoscopeIcon size={16} /> {msg.prediction.topPrediction.disease}
                             </h4>
                           </div>
                           <span className="prediction-confidence-badge">
@@ -466,8 +468,8 @@ export default function SymptomChatbot() {
                         {/* Recommended Precautions Checklist */}
                         {msg.prediction.topPrediction.precautions?.length > 0 && (
                           <div className="prediction-precautions">
-                            <div className="prediction-precautions-title">
-                              <span>🛡️</span>
+                            <div className="prediction-precautions-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <ShieldCheckIcon size={15} />
                               <span>Recommended Care Precautions:</span>
                             </div>
                             <ul className="precautions-list">

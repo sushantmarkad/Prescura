@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ReportIcon, ExportIcon, SettingsIcon } from '../components/Icons';
 
 export default function AdminDashboard() {
   const { currentUser, userRole } = useAuth();
@@ -126,19 +127,20 @@ export default function AdminDashboard() {
         <div className="admin-actions">
           <button 
             className="btn btn-primary" 
-            style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)' }}
+            style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
             onClick={() => navigate('/final-report')}
           >
-            <span>📑</span> Final NABH Report
+            <ReportIcon size={16} /> Final NABH Report
           </button>
           <button 
             className={`btn ${maintenance ? 'btn-danger' : 'btn-secondary'}`} 
             onClick={toggleMaintenance}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
           >
-            {maintenance ? '🔴 Maintenance Mode ON' : '⚙️ Enable Maintenance'}
+            <SettingsIcon size={16} /> {maintenance ? 'Maintenance Mode ON' : 'Enable Maintenance'}
           </button>
-          <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>📊</span> Export Hospital Data
+          <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+            <ExportIcon size={16} /> Export Hospital Data
           </button>
         </div>
       </div>

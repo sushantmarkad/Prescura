@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { calculatePrescriptionScore } from '../utils/scoring';
+import { ReportIcon } from '../components/Icons';
 // import { db } from '../config/firebase'; // Removed as we route via backend now
 // import { doc, deleteDoc } from 'firebase/firestore'; // Removed
 
@@ -346,10 +347,10 @@ export default function UserDashboard() {
         <div className="ud-header-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button 
             className="ud-export-btn" 
-            style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)', boxShadow: '0 4px 14px rgba(5,150,105,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #059669, #0ea5e9)', boxShadow: '0 4px 14px rgba(5,150,105,0.35)', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
             onClick={() => navigate('/final-report')}
           >
-            📑 Final NABH Report
+            <ReportIcon size={16} /> Final NABH Report
           </button>
           <button className="ud-export-btn" onClick={handleExport}>
             {Icons.download} Export Data

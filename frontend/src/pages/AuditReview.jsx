@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { calculatePrescriptionScore } from '../utils/scoring';
 import { generateIndividualAuditPDF } from '../utils/pdfGenerator';
+import { ChecklistIcon, ImageIcon, SplitViewIcon, ZoomInIcon, ReportIcon, ExcelIcon, PdfIcon } from '../components/Icons';
 
 export default function AuditReview() {
   const { id } = useParams();
@@ -330,19 +331,19 @@ export default function AuditReview() {
           className={`ar-mobile-tab-btn ${mobileViewTab === 'checklist' ? 'active' : ''}`}
           onClick={() => setMobileViewTab('checklist')}
         >
-          <span>📋</span> Checklist ({liveScore.complianceScore}%)
+          <ChecklistIcon size={15} /> Checklist ({liveScore.complianceScore}%)
         </button>
         <button
           className={`ar-mobile-tab-btn ${mobileViewTab === 'image' ? 'active' : ''}`}
           onClick={() => setMobileViewTab('image')}
         >
-          <span>🖼️</span> Prescription
+          <ImageIcon size={15} /> Prescription
         </button>
         <button
           className={`ar-mobile-tab-btn ${mobileViewTab === 'both' ? 'active' : ''}`}
           onClick={() => setMobileViewTab('both')}
         >
-          <span>📑</span> Both
+          <SplitViewIcon size={15} /> Both
         </button>
       </div>
 
@@ -357,9 +358,9 @@ export default function AuditReview() {
                 target="_blank" 
                 rel="noreferrer" 
                 className="btn btn-secondary" 
-                style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', minHeight: 'auto' }}
+                style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', minHeight: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
               >
-                🔍 Full Size
+                <ZoomInIcon size={14} /> Full Size
               </a>
             )}
           </div>
@@ -379,27 +380,27 @@ export default function AuditReview() {
             <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 className="btn btn-secondary print-hide"
-                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', color: 'var(--primary-color)', minHeight: 'auto' }}
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', color: 'var(--primary-color)', minHeight: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 onClick={() => navigate('/final-report')}
                 title="View Hospital-wide NABH Audit Report"
               >
-                📑 Final Report
+                <ReportIcon size={14} /> Final Report
               </button>
               <button
                 className="btn btn-secondary print-hide"
-                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', minHeight: 'auto' }}
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', minHeight: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 onClick={handleDownloadExcel}
                 disabled={!classification} // Only enable if saved
               >
-                📊 Excel
+                <ExcelIcon size={14} /> Excel
               </button>
               <button
                 className="btn btn-secondary print-hide"
-                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', minHeight: 'auto' }}
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', minHeight: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 onClick={handleDownloadPDF}
                 disabled={!classification} // Only enable if saved
               >
-                📄 PDF
+                <PdfIcon size={14} /> PDF
               </button>
             </div>
           </div>
@@ -553,10 +554,10 @@ export default function AuditReview() {
                   </button>
                   <button
                     className="btn btn-secondary"
-                    style={{ padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.82rem', borderColor: 'var(--primary-color)', color: 'var(--primary-color)' }}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.82rem', borderColor: 'var(--primary-color)', color: 'var(--primary-color)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                     onClick={() => navigate('/final-report')}
                   >
-                    📑 Final NABH Report
+                    <ReportIcon size={14} /> Final NABH Report
                   </button>
                   <button className="btn btn-primary" style={{ padding: '0.5rem 1.1rem', borderRadius: '999px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={handleNextPending} disabled={navigatingNext}>
                     {navigatingNext ? 'Loading...' : 'Next Pending'}
