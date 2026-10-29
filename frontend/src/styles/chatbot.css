@@ -576,6 +576,7 @@ body.dark .chatbot-disclaimer {
 
 .chatbot-input-field {
   flex: 1;
+  min-width: 0;
   border: 1px solid var(--border-color);
   background: var(--bg-color);
   color: var(--text-primary);
@@ -617,7 +618,14 @@ body.dark .chatbot-disclaimer {
 }
 
 /* Mobile responsive styles */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  /* Hide the floating trigger button completely when chatbot window is open so it NEVER overlaps the send button */
+  .chatbot-bubble-trigger.is-open {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
   .chatbot-window {
     bottom: 0;
     right: 0;

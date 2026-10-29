@@ -236,9 +236,9 @@ export default function SymptomChatbot() {
     <>
       {/* Floating Trigger Button */}
       <button
-        className="chatbot-bubble-trigger"
+        className={`chatbot-bubble-trigger ${isOpen ? 'is-open' : ''}`}
         onClick={handleToggleOpen}
-        aria-label="Open AI Symptom Checker"
+        aria-label={isOpen ? "Close AI Symptom Checker" : "Open AI Symptom Checker"}
         title="AI Symptom Checker & Disease Predictor"
       >
         <span className="chatbot-bubble-pulse" />
